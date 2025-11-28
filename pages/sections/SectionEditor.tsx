@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
-import { useForm, useFieldArray, Controller, useWatch } from 'react-hook-form';
+import { useForm, useFieldArray, Controller, useWatch, Control } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { sectionsApi } from '../../client/sections';
-import { CreateSectionDto, ComponentType } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { toast } from 'react-hot-toast';
 import { ArrowLeft, Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { ValueEditors } from '../../components/section/ValueEditors';
 
 // --- Zod Schemas ---
 const componentSchema = z.object({
@@ -28,98 +28,15 @@ const sectionSchema = z.object({
 
 type SectionFormValues = z.infer<typeof sectionSchema>;
 
-// --- Helper Component for Dynamic Values ---
-const ValueEditor = ({ type, value, onChange }: { type: ComponentType, value: any, onChange: (val: any) => void }) => {
-    const [jsonError, setJsonError] = React.useState<string | null>(null);
-    const [internalJson, setInternalJson] = React.useState('');
+// --- Wrapper Component to safely use hooks (useWatch) ---
+const ComponentValueField = ({ control, index, value, onChange }: { control: Control<SectionFormValues>, index: number, value: any, onChange: (val: any) => void }) => {
+    const type = useWatch({
+        control,
+        name: `components.${index}.type`
+    });
 
-    // Sync internal JSON state when value changes externally (if it's an object/array)
-    useEffect(() => {
-        if ((type === 'list' || type === 'custom') && typeof value === 'object') {
-            setInternalJson(JSON.stringify(value, null, 2));
-        }
-    }, [value, type]);
-
-    const handleJsonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const str = e.target.value;
-        setInternalJson(str);
-        try {
-            const parsed = JSON.parse(str);
-            setJsonError(null);
-            onChange(parsed);
-        } catch (err) {
-            setJsonError("Invalid JSON");
-        }
-    };
-
-    if (type === 'text' || type === 'richText' || type === 'button') {
-        // For button, we might need an object {text, link}, but for simplicity let's assume simple string or use JSON for complex button
-        if (type === 'button') {
-             return (
-                <div className="space-y-2">
-                    <p className="text-xs text-gray-500">Format: JSON Object</p>
-                    <textarea 
-                        className={`w-full font-mono text-sm border rounded p-2 h-24 ${jsonError ? 'border-red-500' : 'border-gray-300'}`}
-                        value={internalJson || (typeof value === 'object' ? JSON.stringify(value, null, 2) : value)}
-                        onChange={handleJsonChange}
-                        placeholder='{"text": "Click Me", "link": "/path"}'
-                    />
-                     {jsonError && <p className="text-red-500 text-xs">{jsonError}</p>}
-                </div>
-             )
-        }
-        return (
-            <input 
-                type="text" 
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                value={value || ''} 
-                onChange={(e) => onChange(e.target.value)} 
-                placeholder="Enter text content..."
-            />
-        );
-    }
-    
-    if (type === 'image' || type === 'video') {
-         // Assuming simple string URL or object structure. Let's support string URL for simplicity or JSON for complex.
-         // If value is a string, show input.
-         const isString = typeof value === 'string' || !value;
-         
-         if (isString) {
-             return (
-                 <div className="space-y-2">
-                    <input 
-                        type="text" 
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                        value={value || ''} 
-                        onChange={(e) => onChange(e.target.value)} 
-                        placeholder={`Enter ${type} URL...`}
-                    />
-                    {value && type === 'image' && (
-                        <div className="mt-2 h-32 w-full bg-gray-100 rounded flex items-center justify-center overflow-hidden border">
-                            <img src={value} alt="Preview" className="h-full object-contain" />
-                        </div>
-                    )}
-                 </div>
-             );
-         }
-         // Fallback to JSON if it's complex object
-    }
-
-    // Default for 'list', 'custom', or complex structures
-    return (
-        <div className="space-y-1">
-            <textarea 
-                className={`w-full font-mono text-sm border rounded-md p-2 h-32 focus:ring-2 focus:ring-blue-500 outline-none ${jsonError ? 'border-red-500' : 'border-gray-300'}`}
-                value={internalJson}
-                onChange={handleJsonChange}
-                placeholder="Enter valid JSON..."
-            />
-            {jsonError && <p className="text-red-500 text-xs">{jsonError}</p>}
-            <p className="text-xs text-gray-400">JSON Mode enabled for complex data structures.</p>
-        </div>
-    );
-}
-
+    return <ValueEditors type={type} value={value} onChange={onChange} />;
+};
 
 export const SectionEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -287,12 +204,14 @@ export const SectionEditor: React.FC = () => {
                                  <Controller
                                     control={control}
                                     name={`components.${index}.value` as const}
-                                    render={({ field: { value, onChange } }) => {
-                                        // Need to watch the type to render correct input
-                                        // eslint-disable-next-line react-hooks/rules-of-hooks
-                                        const type = useWatch({ control, name: `components.${index}.type` });
-                                        return <ValueEditor type={type as ComponentType} value={value} onChange={onChange} />;
-                                    }}
+                                    render={({ field: { value, onChange } }) => (
+                                        <ComponentValueField 
+                                            control={control} 
+                                            index={index} 
+                                            value={value} 
+                                            onChange={onChange} 
+                                        />
+                                    )}
                                  />
                              </div>
                         </div>
