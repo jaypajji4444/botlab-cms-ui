@@ -1,20 +1,22 @@
 import React, { useEffect } from 'react';
-import { useForm, useFieldArray, Controller, useWatch, Control } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { sectionsApi } from '../../client/sections';
 import { Button } from '../../components/ui/Button';
 import { toast } from 'react-hot-toast';
-import { ArrowLeft, Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
-import { ValueEditors } from '../../components/section/ValueEditors';
+import { ArrowLeft } from 'lucide-react';
+import { ComponentListEditor } from '@/components/section/ComponentListEditor';
+
 
 // --- Zod Schemas ---
+// Reused in logic but we keep it simple here
 const componentSchema = z.object({
   name: z.string().min(1, 'Component name is required'),
   slug: z.string().min(1, 'Slug is required'),
   type: z.enum(['text', 'image', 'video', 'button', 'richText', 'custom', 'list']),
-  value: z.any(), // Flexible
+  value: z.any(),
   isVisible: z.boolean(),
 });
 
@@ -27,16 +29,6 @@ const sectionSchema = z.object({
 });
 
 type SectionFormValues = z.infer<typeof sectionSchema>;
-
-// --- Wrapper Component to safely use hooks (useWatch) ---
-const ComponentValueField = ({ control, index, value, onChange }: { control: Control<SectionFormValues>, index: number, value: any, onChange: (val: any) => void }) => {
-    const type = useWatch({
-        control,
-        name: `components.${index}.type`
-    });
-
-    return <ValueEditors type={type} value={value} onChange={onChange} />;
-};
 
 export const SectionEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,11 +44,6 @@ export const SectionEditor: React.FC = () => {
       isActive: true,
       components: [],
     }
-  });
-
-  const { fields, append, remove, move } = useFieldArray({
-    control,
-    name: 'components',
   });
 
   useEffect(() => {
@@ -98,7 +85,8 @@ export const SectionEditor: React.FC = () => {
                 <ArrowLeft size={20} />
              </Button>
              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? 'Edit Section' : 'Create New Section'}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? 'Edit Section Template' : 'Create Section Template'}</h1>
+                <p className="text-xs text-gray-500">Define the default components for this section type.</p>
              </div>
         </div>
         <div className="flex items-center space-x-3">
@@ -138,87 +126,13 @@ export const SectionEditor: React.FC = () => {
         </div>
 
         {/* Components Builder */}
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Components</h2>
-                <Button type="button" size="sm" onClick={() => append({ name: 'New Component', slug: `comp-${fields.length + 1}`, type: 'text', isVisible: true, value: '' })}>
-                    <Plus size={16} className="mr-2" /> Add Component
-                </Button>
-            </div>
-            
-            <div className="space-y-4">
-                {fields.length === 0 && (
-                    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center text-gray-500">
-                        No components added yet. Click "Add Component" to start building.
-                    </div>
-                )}
-                {fields.map((field, index) => (
-                    <div key={field.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                                <GripVertical className="text-gray-400 cursor-grab" size={16} />
-                                <span className="font-medium text-sm text-gray-700">Component #{index + 1}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                                <button type="button" onClick={() => index > 0 && move(index, index - 1)} className="p-1 hover:bg-gray-200 rounded text-gray-500"><ChevronUp size={16}/></button>
-                                <button type="button" onClick={() => index < fields.length - 1 && move(index, index + 1)} className="p-1 hover:bg-gray-200 rounded text-gray-500"><ChevronDown size={16}/></button>
-                                <button type="button" onClick={() => remove(index)} className="p-1 hover:bg-red-100 rounded text-red-500"><Trash2 size={16}/></button>
-                            </div>
-                        </div>
-                        
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-12 gap-4">
-                             {/* Component Header Info */}
-                             <div className="md:col-span-3 space-y-3 border-r md:pr-4 border-gray-100">
-                                <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Name</label>
-                                    <input {...register(`components.${index}.name` as const)} className="w-full text-sm border-b border-gray-200 py-1 focus:border-blue-500 outline-none bg-transparent" placeholder="Name" />
-                                    {errors.components?.[index]?.name && <span className="text-red-500 text-xs">Required</span>}
-                                </div>
-                                <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Slug</label>
-                                    <input {...register(`components.${index}.slug` as const)} className="w-full text-sm border-b border-gray-200 py-1 focus:border-blue-500 outline-none bg-transparent" placeholder="slug" />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Type</label>
-                                    <select {...register(`components.${index}.type` as const)} className="w-full text-sm border-b border-gray-200 py-1 bg-transparent outline-none cursor-pointer">
-                                        <option value="text">Text</option>
-                                        <option value="richText">Rich Text</option>
-                                        <option value="image">Image</option>
-                                        <option value="video">Video</option>
-                                        <option value="button">Button</option>
-                                        <option value="list">List (Complex)</option>
-                                        <option value="custom">Custom</option>
-                                    </select>
-                                </div>
-                                <div className="pt-2">
-                                     <label className="flex items-center space-x-2">
-                                        <input type="checkbox" {...register(`components.${index}.isVisible` as const)} className="rounded text-blue-600" />
-                                        <span className="text-xs text-gray-600">Visible</span>
-                                     </label>
-                                </div>
-                             </div>
-
-                             {/* Dynamic Value Input */}
-                             <div className="md:col-span-9">
-                                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Content Value</label>
-                                 <Controller
-                                    control={control}
-                                    name={`components.${index}.value` as const}
-                                    render={({ field: { value, onChange } }) => (
-                                        <ComponentValueField 
-                                            control={control} 
-                                            index={index} 
-                                            value={value} 
-                                            onChange={onChange} 
-                                        />
-                                    )}
-                                 />
-                             </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
+        <ComponentListEditor 
+            control={control} 
+            register={register} 
+            errors={errors} 
+            name="components" 
+        />
+        
       </form>
     </div>
   );

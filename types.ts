@@ -29,7 +29,7 @@ export interface SectionDto extends CreateSectionDto {
 export interface CreatePageDto {
   title: string;
   slug: string;
-  sections?: string[]; // Array of Section IDs
+  sections?: SectionDto[]; 
   metadata?: Record<string, unknown>;
 }
 
