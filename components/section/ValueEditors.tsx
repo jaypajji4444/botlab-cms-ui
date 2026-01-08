@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Link as LinkIcon, Image as ImageIcon, Video, Type, List as ListIcon, MoreHorizontal, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Trash2, Link as LinkIcon, Image as ImageIcon, Video, Type, Settings, ChevronDown, ChevronUp, UploadCloud, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { filesApi } from '../../client/files';
+import { toast } from 'react-hot-toast';
 
 // --- Types ---
 interface ValueEditorProps {
@@ -11,29 +14,75 @@ interface ValueEditorProps {
 
 // --- Media Editor (Image/Video) ---
 const MediaEditor: React.FC<ValueEditorProps & { label?: string }> = ({ type, value, onChange, label }) => {
-  const data = typeof value === 'object' ? value : { url: value || '' };
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const data = typeof value === 'object' && value !== null ? value : { url: value || '' };
 
   const handleChange = (field: string, val: string) => {
     const newData = { ...data, [field]: val };
     onChange(newData);
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      let response;
+      if (type === 'video') {
+        response = await filesApi.uploadVideo(file);
+      } else {
+        response = await filesApi.uploadImage(file);
+      }
+      
+      handleChange('url', response.url);
+      toast.success(`${type === 'video' ? 'Video' : 'Image'} uploaded successfully`);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.response?.data?.message || `Failed to upload ${type}`);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="space-y-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-      {label && <label className="block text-xs font-bold text-gray-700 uppercase">{label}</label>}
+      <div className="flex items-center justify-between">
+         {label && <label className="block text-xs font-bold text-gray-700 uppercase">{label}</label>}
+         <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept={type === 'video' ? 'video/*' : 'image/*'} 
+            onChange={handleFileChange}
+         />
+      </div>
+
       <div>
-        <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-1">{type} URL</label>
+        <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-1">{type} Source</label>
         <div className="flex items-center space-x-2">
            <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-400">
               {type === 'video' ? <Video size={16} /> : <ImageIcon size={16} />}
            </div>
            <input 
              type="text" 
-             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+             className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
              value={data.url || ''}
              onChange={(e) => handleChange('url', e.target.value)}
-             placeholder={`https://example.com/file.${type === 'video' ? 'mp4' : 'png'}`}
+             placeholder={isUploading ? 'Uploading...' : `URL or upload file...`}
+             disabled={isUploading}
            />
+           <button 
+             type="button"
+             onClick={() => fileInputRef.current?.click()}
+             disabled={isUploading}
+             className="p-2 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-colors disabled:opacity-50"
+             title={`Upload ${type}`}
+           >
+             {isUploading ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
+           </button>
         </div>
       </div>
       
@@ -48,9 +97,13 @@ const MediaEditor: React.FC<ValueEditorProps & { label?: string }> = ({ type, va
         />
       </div>
 
-      {data.url && type === 'image' && (
+      {data.url && !isUploading && (
         <div className="mt-2 h-32 w-full bg-gray-100 rounded flex items-center justify-center overflow-hidden border border-gray-200">
-           <img src={data.url} alt="Preview" className="h-full object-contain" />
+           {type === 'image' ? (
+             <img src={data.url} alt="Preview" className="h-full object-contain" />
+           ) : (
+             <video src={data.url} className="h-full" controls />
+           )}
         </div>
       )}
     </div>
@@ -59,7 +112,7 @@ const MediaEditor: React.FC<ValueEditorProps & { label?: string }> = ({ type, va
 
 // --- Button Editor ---
 const ButtonEditor: React.FC<ValueEditorProps & { label?: string }> = ({ value, onChange, label }) => {
-    const data = typeof value === 'object' ? value : { text: '', link: '' };
+    const data = typeof value === 'object' && value !== null ? value : { text: '', link: '' };
 
     const handleChange = (field: string, val: string) => {
         onChange({ ...data, [field]: val });
