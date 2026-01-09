@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { blogsApi } from '../../client/blogs';
+import { filesApi } from '../../client/files';
 import { Button } from '../../components/ui/Button';
 import { toast } from 'react-hot-toast';
-import { ArrowLeft, Settings, Info, Calendar } from 'lucide-react';
+import { ArrowLeft, Settings, Info } from 'lucide-react';
 import ReactQuill from 'react-quill';
 
 // Zod Schema for Blog
@@ -23,6 +24,7 @@ type BlogFormValues = z.infer<typeof blogSchema>;
 export const BlogEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const quillRef = useRef<ReactQuill>(null);
   const isEditMode = !!id;
 
   const [metaJson, setMetaJson] = useState('{}');
@@ -40,7 +42,6 @@ export const BlogEditor: React.FC = () => {
 
   const titleValue = watch('title');
 
-  // Auto-generate slug from title if title changes and slug is empty
   useEffect(() => {
     if (!isEditMode && titleValue) {
       const generatedSlug = titleValue
@@ -71,6 +72,49 @@ export const BlogEditor: React.FC = () => {
     }
   }, [id, isEditMode, reset]);
 
+  // Custom Image Handler for Quill
+  const imageHandler = useCallback(() => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (file) {
+        const toastId = toast.loading('Uploading image to cloud...');
+        try {
+          const res = await filesApi.uploadImage(file);
+          const quill = quillRef.current?.getEditor();
+          const range = quill?.getSelection();
+          if (quill && range) {
+            quill.insertEmbed(range.index, 'image', res.url);
+            quill.setSelection(range.index + 1);
+          }
+          toast.success('Image uploaded successfully', { id: toastId });
+        } catch (error) {
+          console.error('Editor image upload failed:', error);
+          toast.error('Failed to upload image', { id: toastId });
+        }
+      }
+    };
+  }, []);
+
+  const quillModules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        ['link', 'image', 'code-block'],
+        ['clean']
+      ],
+      handlers: {
+        image: imageHandler
+      }
+    }
+  }), [imageHandler]);
+
   const onSubmit = async (data: BlogFormValues) => {
     try {
       let parsedMeta = {};
@@ -80,10 +124,9 @@ export const BlogEditor: React.FC = () => {
         toast.error("Invalid Metadata JSON");
         return;
       }
+      console.log('Submitting blog data:', data, 'with metadata:', parsedMeta);
 
       const payload = { ...data, metadata: parsedMeta };
-
-      console.log('Submitting blog data:', payload);
 
       if (isEditMode && id) {
         await blogsApi.update(id, payload);
@@ -97,16 +140,6 @@ export const BlogEditor: React.FC = () => {
       console.error(error);
       toast.error('Error saving blog post');
     }
-  };
-
-  const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-      ['link', 'image', 'code-block'],
-      ['clean']
-    ],
   };
 
   return (
@@ -130,8 +163,6 @@ export const BlogEditor: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Main Editor Content */}
         <div className="lg:col-span-8 space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 space-y-6">
                 <div>
@@ -153,6 +184,7 @@ export const BlogEditor: React.FC = () => {
                         control={control}
                         render={({ field }) => (
                             <ReactQuill 
+                                ref={quillRef}
                                 theme="snow" 
                                 value={field.value} 
                                 onChange={field.onChange}
@@ -166,7 +198,6 @@ export const BlogEditor: React.FC = () => {
             </div>
         </div>
 
-        {/* Sidebar Settings */}
         <div className="lg:col-span-4 space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 space-y-6 sticky top-6">
                 <div>
@@ -209,15 +240,6 @@ export const BlogEditor: React.FC = () => {
                         className="w-full h-40 font-mono text-xs border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
                         placeholder='{"description": "SEO summary...", "tags": ["tech", "ai"]}'
                     />
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                  <div className="flex items-start">
-                    <Info size={16} className="text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
-                    <p className="text-xs text-blue-800 leading-relaxed">
-                      Make sure your slug is descriptive and contains your target keywords for better search engine rankings.
-                    </p>
-                  </div>
                 </div>
             </div>
         </div>
