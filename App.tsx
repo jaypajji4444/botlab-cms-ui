@@ -7,6 +7,8 @@ import { PageList } from './pages/pages/PageList';
 import { PageEditor } from './pages/pages/PageEditor';
 import { SectionList } from './pages/sections/SectionList';
 import { SectionEditor } from './pages/sections/SectionEditor';
+import { BlogList } from './pages/blogs/BlogList';
+import { BlogEditor } from './pages/blogs/BlogEditor';
 import { Login } from './pages/Login';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
@@ -34,6 +36,10 @@ const AppRoutes: React.FC = () => {
           <Route path="pages" element={<PageList />} />
           <Route path="pages/create" element={<PageEditor />} />
           <Route path="pages/edit/:id" element={<PageEditor />} />
+
+          <Route path="blogs" element={<BlogList />} />
+          <Route path="blogs/create" element={<BlogEditor />} />
+          <Route path="blogs/edit/:id" element={<BlogEditor />} />
           
           <Route path="sections" element={<SectionList />} />
           <Route path="sections/create" element={<SectionEditor />} />

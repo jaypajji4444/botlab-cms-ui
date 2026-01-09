@@ -49,3 +49,20 @@ export interface NavItem {
   path: string;
   icon: React.ReactNode;
 }
+
+
+export type BlogStatus = 'draft' | 'published';
+
+export interface CreateBlogDto {
+  title: string;
+  slug: string;
+  content: string; // RTE HTML output
+  status: BlogStatus;
+  metadata?: Record<string, unknown>;
+}
+
+export interface BlogDto extends CreateBlogDto {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
