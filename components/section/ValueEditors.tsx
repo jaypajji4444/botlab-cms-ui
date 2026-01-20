@@ -208,7 +208,7 @@ const ButtonEditor: React.FC<ValueEditorProps & { label?: string }> = ({ value, 
 // --- List Editor with Schema Support ---
 interface SchemaField {
     key: string;
-    type: 'text' | 'longText' | 'image' | 'video' | 'button';
+    type: 'text' | 'longText' | 'image' | 'video' | 'button' | 'list';
 }
 
 const ListEditor: React.FC<ValueEditorProps> = ({ value, onChange }) => {
@@ -224,6 +224,7 @@ const ListEditor: React.FC<ValueEditorProps> = ({ value, onChange }) => {
                     const val = firstItem[key];
                     let type: SchemaField['type'] = 'text';
                     if (typeof val === 'string' && val.length > 60) type = 'longText';
+                    else if (Array.isArray(val)) type = 'list';
                     else if (typeof val === 'object' && val !== null) {
                          if ('url' in val && key.toLowerCase().includes('video')) type = 'video';
                          else if ('url' in val) type = 'image';
@@ -239,7 +240,7 @@ const ListEditor: React.FC<ValueEditorProps> = ({ value, onChange }) => {
                 ]);
             }
         }
-    }, []);
+    }, [items, schema.length]);
 
     const handleAddItem = () => {
         const newItem: any = {};
@@ -247,6 +248,7 @@ const ListEditor: React.FC<ValueEditorProps> = ({ value, onChange }) => {
             if (field.type === 'text' || field.type === 'longText') newItem[field.key] = '';
             if (field.type === 'image' || field.type === 'video') newItem[field.key] = { url: '' };
             if (field.type === 'button') newItem[field.key] = { text: 'Button', link: '#' };
+            if (field.type === 'list') newItem[field.key] = [];
         });
         onChange([...items, newItem]);
     };
@@ -306,6 +308,7 @@ const ListEditor: React.FC<ValueEditorProps> = ({ value, onChange }) => {
                                 <option value="image">Image</option>
                                 <option value="video">Video</option>
                                 <option value="button">Button</option>
+                                <option value="list">Nested List</option>
                             </select>
                             <button type="button" onClick={() => {
                                 const newSchema = [...schema];
@@ -355,6 +358,10 @@ const ListEditor: React.FC<ValueEditorProps> = ({ value, onChange }) => {
                                     )}
                                     {field.type === 'button' && (
                                         <ButtonEditor value={item[field.key]} type="button" onChange={(val) => handleUpdateItem(index, field.key, val)} />
+                                    )}
+                                    {field.type === 'list' && (
+                                        /*  Pass the correct 'type' prop to nested ListEditor */
+                                        <ListEditor type="list" value={item[field.key]} onChange={(val) => handleUpdateItem(index, field.key, val)} />
                                     )}
                                 </div>
                             ))}
