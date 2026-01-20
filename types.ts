@@ -66,3 +66,17 @@ export interface BlogDto extends CreateBlogDto {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CreateContactDto {
+  firstName: string;
+  lastName: string;
+  email: string;
+  mobileNumber: string;
+  message?: string;
+}
+
+export interface ContactDto extends CreateContactDto {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}

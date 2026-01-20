@@ -11,6 +11,7 @@ import { BlogList } from './pages/blogs/BlogList';
 import { BlogEditor } from './pages/blogs/BlogEditor';
 import { Login } from './pages/Login';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ContactList } from './pages/contacts/ContactList';
 
 // Guard Component to protect routes
 const ProtectedRoute = () => {
@@ -44,6 +45,8 @@ const AppRoutes: React.FC = () => {
           <Route path="sections" element={<SectionList />} />
           <Route path="sections/create" element={<SectionEditor />} />
           <Route path="sections/edit/:id" element={<SectionEditor />} />
+
+           <Route path="contacts" element={<ContactList />} />
         </Route>
       </Route>
     </Routes>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Layers, Menu, X, Settings, LogOut, BookOpen } from 'lucide-react';
+import { LayoutDashboard, FileText, Layers, Menu, X, Settings, LogOut, BookOpen, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const Layout: React.FC = () => {
@@ -13,6 +13,7 @@ export const Layout: React.FC = () => {
     { label: 'Pages', path: '/pages', icon: <FileText size={20} /> },
     { label: 'Blogs', path: '/blogs', icon: <BookOpen size={20} /> },
     { label: 'Sections', path: '/sections', icon: <Layers size={20} /> },
+     { label: 'Contacts', path: '/contacts', icon: <Mail size={20} /> },
   ];
 
   return (
