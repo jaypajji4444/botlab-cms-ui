@@ -66,7 +66,7 @@ export const BlogEditor: React.FC = () => {
            setMetaJson(JSON.stringify(data.metadata || {}, null, 2));
         }
       }).catch(err => {
-          console.error(err);
+
           toast.error("Failed to load blog post");
       });
     }

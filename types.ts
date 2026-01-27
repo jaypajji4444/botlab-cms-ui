@@ -80,3 +80,22 @@ export interface ContactDto extends CreateContactDto {
   createdAt: string;
   updatedAt: string;
 }
+// Portfolio Types
+export interface CreatePortfolioDto {
+  title: string;
+  slug: string;
+  category: string;
+  location: string;
+  isIndexable?: boolean;
+  sections: (CreateSectionDto & { id?: string })[]; 
+  metadata?: Record<string, unknown>;
+}
+
+export interface PortfolioDto extends CreatePortfolioDto {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  sections: SectionDto[];
+}
+
+export interface ResolvedPortfolioDto extends PortfolioDto {}

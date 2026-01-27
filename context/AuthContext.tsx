@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string) => {
     try {
       const response = await authApi.login(username, password);
-      console.log('Login response:', response);
+    
       const { token } = response;
       if (token) {
           localStorage.setItem('token', token);
@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('No access token received');
       }
     } catch (error: any) {
-      console.error(error);
+     
       toast.error(error.response?.data?.message || 'Login failed');
       throw error;
     }
