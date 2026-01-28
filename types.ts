@@ -59,6 +59,9 @@ export interface CreateBlogDto {
   content: string; // RTE HTML output
   status: BlogStatus;
   metadata?: Record<string, unknown>;
+  isIndexable?: boolean;
+  category?: string;
+  preview?: string;
 }
 
 export interface BlogDto extends CreateBlogDto {
