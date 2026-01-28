@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Plus, Trash2, Image as ImageIcon, Video, Settings, UploadCloud, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -216,39 +217,38 @@ const ListEditor: React.FC<ValueEditorProps> = ({ value, onChange }) => {
     const [schema, setSchema] = useState<SchemaField[]>([]);
     const [isConfiguring, setIsConfiguring] = useState(false);
 
+    // Initial Inference
     useEffect(() => {
-        if (schema.length === 0) {
-            if (items.length > 0) {
-                const firstItem = items[0];
-                const inferredSchema: SchemaField[] = Object.keys(firstItem).map(key => {
-                    const val = firstItem[key];
-                    let type: SchemaField['type'] = 'text';
-                    if (typeof val === 'string' && val.length > 60) type = 'longText';
-                    else if (Array.isArray(val)) type = 'list';
-                    else if (typeof val === 'object' && val !== null) {
-                         if ('url' in val && key.toLowerCase().includes('video')) type = 'video';
-                         else if ('url' in val) type = 'image';
-                         else if ('link' in val) type = 'button';
-                    }
-                    return { key, type };
-                });
-                setSchema(inferredSchema);
-            } else {
-                setSchema([
-                    { key: 'title', type: 'text' },
-                    { key: 'description', type: 'longText' }
-                ]);
-            }
+        if (schema.length === 0 && items.length > 0) {
+            const firstItem = items[0];
+            const inferredSchema: SchemaField[] = Object.keys(firstItem).map(key => {
+                const val = firstItem[key];
+                let type: SchemaField['type'] = 'text';
+                if (typeof val === 'string' && val.length > 60) type = 'longText';
+                else if (Array.isArray(val)) type = 'list';
+                else if (typeof val === 'object' && val !== null) {
+                        if ('url' in val && key.toLowerCase().includes('video')) type = 'video';
+                        else if ('url' in val) type = 'image';
+                        else if ('link' in val) type = 'button';
+                }
+                return { key, type };
+            });
+            setSchema(inferredSchema);
+        } else if (schema.length === 0) {
+            setSchema([
+                { key: 'title', type: 'text' },
+                { key: 'description', type: 'longText' }
+            ]);
         }
-    }, [items, schema.length]);
+    }, []); // Only run on mount to avoid loops
 
     const handleAddItem = () => {
         const newItem: any = {};
         schema.forEach(field => {
             if (field.type === 'text' || field.type === 'longText') newItem[field.key] = '';
-            if (field.type === 'image' || field.type === 'video') newItem[field.key] = { url: '' };
-            if (field.type === 'button') newItem[field.key] = { text: 'Button', link: '#' };
-            if (field.type === 'list') newItem[field.key] = [];
+            else if (field.type === 'image' || field.type === 'video') newItem[field.key] = { url: '' };
+            else if (field.type === 'button') newItem[field.key] = { text: 'Button', link: '#' };
+            else if (field.type === 'list') newItem[field.key] = [];
         });
         onChange([...items, newItem]);
     };
@@ -265,93 +265,178 @@ const ListEditor: React.FC<ValueEditorProps> = ({ value, onChange }) => {
         onChange(newItems);
     };
 
+    // PHYSICAL SYNC: Deletes the key from all data items
+    const handleRemoveField = (idx: number) => {
+        const fieldToRemove = schema[idx].key;
+        
+        // 1. Update Schema UI
+        const newSchema = [...schema];
+        newSchema.splice(idx, 1);
+        setSchema(newSchema);
+
+        // 2. Physical Clean: Remove key from all objects in value array
+        const cleanedItems = items.map(item => {
+            const newItem = { ...item };
+            delete newItem[fieldToRemove];
+            return newItem;
+        });
+        
+        // Propagate changes so they are saved to DB without the deleted key
+        onChange(cleanedItems);
+        toast.success(`Removed field "${fieldToRemove}" and cleaned associated data.`);
+    };
+
+    // Rename Field Logic to maintain data integrity
+    const handleRenameField = (idx: number, newKey: string) => {
+        const oldKey = schema[idx].key;
+        if (oldKey === newKey) return;
+
+        // 1. Update Schema UI
+        const newSchema = [...schema];
+        newSchema[idx].key = newKey;
+        setSchema(newSchema);
+
+        // 2. Move data to new key
+        const updatedItems = items.map(item => {
+            const newItem = { ...item };
+            if (oldKey in newItem) {
+                newItem[newKey] = newItem[oldKey];
+                delete newItem[oldKey];
+            }
+            return newItem;
+        });
+        onChange(updatedItems);
+    };
+
+    const handleUpdateFieldType = (idx: number, newType: SchemaField['type']) => {
+        const newSchema = [...schema];
+        newSchema[idx].type = newType;
+        setSchema(newSchema);
+        // Note: We don't necessarily reset data here to avoid accidental loss, 
+        // the visual editor for the item will just switch to the new type.
+    };
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                 <div className="text-xs text-gray-500 italic">{items.length} items defined</div>
+                 <div className="text-xs text-gray-500 italic font-medium">{items.length} items defined in this list</div>
                  <button 
                     type="button" 
                     onClick={() => setIsConfiguring(!isConfiguring)}
-                    className="flex items-center text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded transition-colors"
+                    className={`flex items-center text-xs font-bold px-3 py-1.5 rounded-lg transition-all border ${isConfiguring ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100'}`}
                  >
-                     <Settings size={12} className="mr-1" />
-                     {isConfiguring ? 'Hide Configuration' : 'Configure Fields'}
+                     <Settings size={14} className={`mr-1.5 ${isConfiguring ? 'animate-spin-slow' : ''}`} />
+                     {isConfiguring ? 'Done Configuring' : 'Configure Schema'}
                  </button>
             </div>
 
             {isConfiguring && (
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <h4 className="text-sm font-bold text-blue-900">List Structure (Schema)</h4>
-                    {schema.map((field, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                            <input 
-                                type="text" 
-                                value={field.key} 
-                                onChange={(e) => {
-                                    const newSchema = [...schema];
-                                    newSchema[idx].key = e.target.value;
-                                    setSchema(newSchema);
-                                }}
-                                className="flex-1 text-xs border border-blue-200 rounded px-2 py-1.5 focus:border-blue-500 outline-none"
-                            />
-                            <select 
-                                value={field.type}
-                                onChange={(e) => {
-                                    const newSchema = [...schema];
-                                    newSchema[idx].type = e.target.value as any;
-                                    setSchema(newSchema);
-                                }}
-                                className="text-xs border border-blue-200 rounded px-2 py-1.5 focus:border-blue-500 outline-none bg-white"
-                            >
-                                <option value="text">Short Text</option>
-                                <option value="longText">Long Text</option>
-                                <option value="image">Image</option>
-                                <option value="video">Video</option>
-                                <option value="button">Button</option>
-                                <option value="list">Nested List</option>
-                            </select>
-                            <button type="button" onClick={() => {
-                                const newSchema = [...schema];
-                                newSchema.splice(idx, 1);
-                                setSchema(newSchema);
-                            }} className="p-1.5 text-red-400 hover:text-red-600">
-                                <Trash2 size={14} />
-                            </button>
-                        </div>
-                    ))}
-                    <Button type="button" size="sm" variant="secondary" onClick={() => setSchema([...schema, { key: `field_${schema.length + 1}`, type: 'text' }])} className="w-full">
-                         + Add Field
-                    </Button>
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center justify-between mb-1">
+                        <h4 className="text-xs font-black text-blue-900 uppercase tracking-widest">List Structure Configuration</h4>
+                        <span className="text-[10px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-bold">MODE: SCHEMA EDITOR</span>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        {schema.map((field, idx) => (
+                            <div key={idx} className="flex items-center gap-2 group">
+                                <div className="flex-1 relative">
+                                    <input 
+                                        type="text" 
+                                        value={field.key} 
+                                        onChange={(e) => handleRenameField(idx, e.target.value)}
+                                        className="w-full text-xs font-bold border border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                                        placeholder="field_key"
+                                    />
+                                </div>
+                                <select 
+                                    value={field.type}
+                                    onChange={(e) => handleUpdateFieldType(idx, e.target.value as any)}
+                                    className="text-xs font-semibold border border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm"
+                                >
+                                    <option value="text">Short Text</option>
+                                    <option value="longText">Rich Content</option>
+                                    <option value="image">Image Asset</option>
+                                    <option value="video">Video Asset</option>
+                                    <option value="button">Call to Action</option>
+                                    <option value="list">Nested Data</option>
+                                </select>
+                                <button 
+                                    type="button" 
+                                    onClick={() => handleRemoveField(idx)} 
+                                    className="p-2 text-blue-300 hover:text-red-500 transition-colors bg-white border border-blue-100 rounded-lg hover:border-red-200"
+                                    title="Delete field and clean data"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <button 
+                        type="button" 
+                        onClick={() => setSchema([...schema, { key: `field_${schema.length + 1}`, type: 'text' }])} 
+                        className="w-full py-2 bg-white border-2 border-dashed border-blue-200 rounded-lg text-blue-500 text-xs font-bold hover:bg-blue-100/50 hover:border-blue-300 transition-all"
+                    >
+                         + Add New Field to Schema
+                    </button>
+                    
+                    <p className="text-[10px] text-blue-400 italic">
+                        Tip: Removing a field from here physically deletes that key from all items in the list to keep data clean.
+                    </p>
                 </div>
             )}
 
             <div className="space-y-4">
+                {items.length === 0 && !isConfiguring && (
+                    <div className="py-10 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
+                        <Plus size={32} className="mb-2 opacity-20" />
+                        <span className="text-xs font-medium">List is empty</span>
+                        <button type="button" onClick={handleAddItem} className="mt-2 text-blue-600 font-bold text-[10px] hover:underline">Add First Item</button>
+                    </div>
+                )}
+                
                 {items.map((item: any, index: number) => (
-                    <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden group">
-                        <div className="bg-gray-100 px-4 py-2 flex items-center justify-between border-b border-gray-200">
-                            <span className="text-xs font-semibold text-gray-500 uppercase">Item #{index + 1}</span>
-                            <button type="button" onClick={() => handleRemoveItem(index)} className="text-gray-400 hover:text-red-600">
+                    <div key={index} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                        <div className="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-100">
+                            <div className="flex items-center space-x-2">
+                                <div className="h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                                    {index + 1}
+                                </div>
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">List Item</span>
+                            </div>
+                            <button type="button" onClick={() => handleRemoveItem(index)} className="text-gray-300 hover:text-red-500 p-1 rounded hover:bg-red-50 transition-all">
                                 <Trash2 size={14} />
                             </button>
                         </div>
-                        <div className="p-4 space-y-4">
+                        <div className="p-4 space-y-5">
                             {schema.map((field) => (
-                                <div key={field.key}>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">{field.key}</label>
+                                <div key={field.key} className="space-y-1.5">
+                                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wider">{field.key.replace(/_/g, ' ')}</label>
                                     {field.type === 'text' && (
                                         <input 
                                             type="text" 
                                             value={item[field.key] || ''}
                                             onChange={(e) => handleUpdateItem(index, field.key, e.target.value)}
-                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                            placeholder={`Enter ${field.key}...`}
                                         />
                                     )}
                                     {field.type === 'longText' && (
-                                        <textarea 
-                                            value={item[field.key] || ''}
-                                            onChange={(e) => handleUpdateItem(index, field.key, e.target.value)}
-                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none h-20"
-                                        />
+                                        <div className="min-h-[100px] border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+                                            <ReactQuill 
+                                                theme="snow"
+                                                value={item[field.key] || ''}
+                                                onChange={(val) => handleUpdateItem(index, field.key, val)}
+                                                modules={{
+                                                    toolbar: [
+                                                        ['bold', 'italic', 'underline'],
+                                                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                                        ['link', 'clean']
+                                                    ]
+                                                }}
+                                            />
+                                        </div>
                                     )}
                                     {(field.type === 'image' || field.type === 'video') && (
                                         <MediaEditor type={field.type} value={item[field.key]} onChange={(val) => handleUpdateItem(index, field.key, val)} />
@@ -360,17 +445,26 @@ const ListEditor: React.FC<ValueEditorProps> = ({ value, onChange }) => {
                                         <ButtonEditor value={item[field.key]} type="button" onChange={(val) => handleUpdateItem(index, field.key, val)} />
                                     )}
                                     {field.type === 'list' && (
-                                        /*  Pass the correct 'type' prop to nested ListEditor */
-                                        <ListEditor type="list" value={item[field.key]} onChange={(val) => handleUpdateItem(index, field.key, val)} />
+                                        <div className="pl-4 border-l-2 border-blue-100 mt-2">
+                                            <ListEditor type="list" value={item[field.key]} onChange={(val) => handleUpdateItem(index, field.key, val)} />
+                                        </div>
                                     )}
                                 </div>
                             ))}
                         </div>
                     </div>
                 ))}
-                <Button type="button" variant="secondary" onClick={handleAddItem} className="w-full border-dashed py-3">
-                    + Add Item
-                </Button>
+                
+                {items.length > 0 && (
+                    <button 
+                        type="button" 
+                        onClick={handleAddItem} 
+                        className="w-full py-3 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-xs font-bold hover:bg-gray-100 hover:border-gray-300 transition-all flex items-center justify-center group"
+                    >
+                        <Plus size={16} className="mr-2 group-hover:scale-110 transition-transform" />
+                        Add Another Entry
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -392,10 +486,10 @@ export const ValueEditors: React.FC<ValueEditorProps> = (props) => {
       return (
           <div className="space-y-1">
               <div className="flex justify-end">
-                  <button type="button" onClick={() => setJsonMode(false)} className="text-xs text-blue-600 hover:underline">Visual Editor</button>
+                  <button type="button" onClick={() => setJsonMode(false)} className="text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-widest">Visual Editor</button>
               </div>
               <textarea 
-                  className="w-full font-mono text-sm border rounded-md p-2 h-40 outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full font-mono text-xs border rounded-lg p-3 h-48 outline-none focus:ring-2 focus:ring-blue-500 bg-gray-900 text-green-400"
                   value={internalJson}
                   onChange={(e) => {
                       setInternalJson(e.target.value);
@@ -425,10 +519,10 @@ export const ValueEditors: React.FC<ValueEditorProps> = (props) => {
   return (
       <div className="space-y-2">
           <div className="flex justify-end">
-             <button type="button" onClick={() => setJsonMode(true)} className="text-xs text-gray-400">JSON</button>
+             <button type="button" onClick={() => setJsonMode(true)} className="text-[10px] font-bold text-gray-300 hover:text-blue-500 uppercase tracking-widest transition-colors">Developer JSON</button>
           </div>
           <textarea 
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-24"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none h-28 shadow-sm transition-all"
             value={typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
             onChange={(e) => onChange(e.target.value)}
             placeholder="Content text..."
