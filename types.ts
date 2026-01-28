@@ -1,8 +1,15 @@
-import React from 'react';
+import React from "react";
 
 // Matching the NestJS DTOs provided
 
-export type ComponentType = 'text' | 'image' | 'video' | 'button' | 'richText' | 'custom' | 'list';
+export type ComponentType =
+  | "text"
+  | "image"
+  | "video"
+  | "button"
+  | "richText"
+  | "custom"
+  | "list";
 
 export interface ComponentDto {
   name: string;
@@ -29,7 +36,7 @@ export interface SectionDto extends CreateSectionDto {
 export interface CreatePageDto {
   title: string;
   slug: string;
-  sections?: SectionDto[]; 
+  sections?: SectionDto[];
   metadata?: Record<string, unknown>;
 }
 
@@ -39,7 +46,7 @@ export interface PageDto extends CreatePageDto {
   updatedAt: string;
 }
 
-export interface ResolvedPageDto extends Omit<PageDto, 'sections'> {
+export interface ResolvedPageDto extends Omit<PageDto, "sections"> {
   sections: SectionDto[];
 }
 
@@ -50,8 +57,7 @@ export interface NavItem {
   icon: React.ReactNode;
 }
 
-
-export type BlogStatus = 'draft' | 'published';
+export type BlogStatus = "draft" | "published";
 
 export interface CreateBlogDto {
   title: string;
@@ -90,7 +96,7 @@ export interface CreatePortfolioDto {
   category: string;
   location: string;
   isIndexable?: boolean;
-  sections: (CreateSectionDto & { id?: string })[]; 
+  sections: (CreateSectionDto & { id?: string })[];
   metadata?: Record<string, unknown>;
 }
 
@@ -102,3 +108,17 @@ export interface PortfolioDto extends CreatePortfolioDto {
 }
 
 export interface ResolvedPortfolioDto extends PortfolioDto {}
+
+export interface CreateReportDto {
+  title: string;
+  category?: string;
+  year: string;
+  date: string;
+  fileUrl: string; // S3 URL
+}
+
+export interface ReportDto extends CreateReportDto {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
