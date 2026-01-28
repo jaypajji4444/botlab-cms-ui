@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Plus, Trash2, Image as ImageIcon, Video, Settings, UploadCloud, Loader2 } from 'lucide-react';
-import { Button } from '../ui/Button';
-import { filesApi } from '../../client/files';
+import { Button } from '../ui/Button'; // Ensure this path matches your project structure
+import { filesApi } from '../../client/files'; // Ensure this path matches
 import { toast } from 'react-hot-toast';
 import ReactQuill from 'react-quill';
 
@@ -12,7 +12,12 @@ interface ValueEditorProps {
   onChange: (val: any) => void;
 }
 
-// --- Constants for performance ---
+interface SchemaField {
+    key: string;
+    type: 'text' | 'longText' | 'image' | 'video' | 'button' | 'list';
+}
+
+// --- Constants ---
 const QUILL_MODULES = {
   toolbar: [
     [{ 'header': [1, 2, false] }],
@@ -30,7 +35,22 @@ const SIMPLE_QUILL_MODULES = {
   ]
 };
 
-// --- Rich Text Editor Component (Memoized) ---
+// --- 1. Isolated Quill Component (Prevents heavy re-renders in lists) ---
+const MemoizedQuill = React.memo(({ value, onChange }: { value: string, onChange: (val: string) => void }) => {
+  return (
+    <div className="min-h-[100px] border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 bg-white">
+      <ReactQuill 
+        theme="snow" 
+        value={value || ''} 
+        onChange={onChange} 
+        modules={SIMPLE_QUILL_MODULES} 
+      />
+    </div>
+  );
+});
+MemoizedQuill.displayName = 'MemoizedQuill';
+
+// --- 2. Rich Text Editor (Main) ---
 const RichTextEditor = React.memo(({ value, onChange }: ValueEditorProps) => {
   const quillRef = useRef<ReactQuill>(null);
 
@@ -81,13 +101,14 @@ const RichTextEditor = React.memo(({ value, onChange }: ValueEditorProps) => {
     </div>
   );
 });
-
 RichTextEditor.displayName = 'RichTextEditor';
 
-// --- Media Editor (Memoized) ---
+// --- 3. Media Editor (Images/Video) ---
 const MediaEditor = React.memo(({ type, value, onChange, label }: ValueEditorProps & { label?: string }) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Safe data extraction
   const data = typeof value === 'object' && value !== null ? value : { url: value || '' };
 
   const handleChange = (field: string, val: string) => {
@@ -150,17 +171,20 @@ const MediaEditor = React.memo(({ type, value, onChange, label }: ValueEditorPro
       </div>
 
       {data.url && !isUploading && (
-        <div className="mt-2 h-32 w-full bg-gray-100 rounded flex items-center justify-center overflow-hidden border border-gray-200">
-           {type === 'image' ? <img src={data.url} alt="Preview" className="h-full object-contain" /> : <video src={data.url} className="h-full" controls />}
+        <div className="mt-2 h-32 w-full bg-gray-100 rounded flex items-center justify-center overflow-hidden border border-gray-200 relative">
+           {type === 'image' ? (
+             <img src={data.url} alt="Preview" className="h-full object-contain" />
+           ) : (
+             <video src={data.url} className="h-full max-w-full" controls preload="metadata" />
+           )}
         </div>
       )}
     </div>
   );
 });
-
 MediaEditor.displayName = 'MediaEditor';
 
-// --- Button Editor (Memoized) ---
+// --- 4. Button Editor ---
 const ButtonEditor = React.memo(({ value, onChange, label }: ValueEditorProps & { label?: string }) => {
     const data = typeof value === 'object' && value !== null ? value : { text: '', link: '#' };
     const handleChange = (field: string, val: string) => onChange({ ...data, [field]: val });
@@ -181,27 +205,9 @@ const ButtonEditor = React.memo(({ value, onChange, label }: ValueEditorProps & 
         </div>
     );
 });
-
 ButtonEditor.displayName = 'ButtonEditor';
 
-// --- Optimized Components ---
-
-// 1. Isolated Quill Component to prevent full row re-renders
-const MemoizedQuill = React.memo(({ value, onChange }: { value: string, onChange: (val: string) => void }) => {
-  return (
-    <div className="min-h-[100px] border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
-      <ReactQuill 
-        theme="snow" 
-        value={value} 
-        onChange={onChange} 
-        modules={SIMPLE_QUILL_MODULES} 
-      />
-    </div>
-  );
-});
-MemoizedQuill.displayName = 'MemoizedQuill';
-
-// 2. Optimized List Item Row
+// --- 5. Optimized List Item Row ---
 const ListItemRow = React.memo(({ item, index, schema, onUpdate, onRemove }: any) => {
     return (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
@@ -219,7 +225,7 @@ const ListItemRow = React.memo(({ item, index, schema, onUpdate, onRemove }: any
                     <div key={field.key} className="space-y-1.5">
                         <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wider">{field.key.replace(/_/g, ' ')}</label>
                         
-                        {/* Text: Safe render with fallback */}
+                        {/* Text: Ensure safe string value to prevent object crashes */}
                         {field.type === 'text' && (
                             <input 
                                 type="text" 
@@ -229,7 +235,7 @@ const ListItemRow = React.memo(({ item, index, schema, onUpdate, onRemove }: any
                             />
                         )}
 
-                        {/* LongText: Uses Isolated Memoized Component & Type Check */}
+                        {/* LongText: Uses Isolated Memoized Component */}
                         {field.type === 'longText' && (
                              <MemoizedQuill 
                                 value={typeof item[field.key] === 'string' ? item[field.key] : ''} 
@@ -240,12 +246,11 @@ const ListItemRow = React.memo(({ item, index, schema, onUpdate, onRemove }: any
                         {(field.type === 'image' || field.type === 'video') && (
                             <MediaEditor type={field.type} value={item[field.key]} onChange={(val) => onUpdate(index, field.key, val)} />
                         )}
-                        
+
                         {field.type === 'button' && (
                             <ButtonEditor value={item[field.key]} type="button" onChange={(val) => onUpdate(index, field.key, val)} />
                         )}
-                        
-                        {/* Recursive List: Ensure we don't pass unstable props */}
+
                         {field.type === 'list' && (
                             <div className="pl-4 border-l-2 border-blue-100 mt-2">
                                 <ListEditor type="list" value={item[field.key]} onChange={(val) => onUpdate(index, field.key, val)} />
@@ -256,47 +261,42 @@ const ListItemRow = React.memo(({ item, index, schema, onUpdate, onRemove }: any
             </div>
         </div>
     );
-}, (prevProps, nextProps) => {
-    // Custom comparison to ensure stability even if functions are recreated
+}, (prev, next) => {
+    // Custom comparison to prevent re-renders when functions are recreated
+    // This is crucial for performance with complex lists
     return (
-        prevProps.index === nextProps.index &&
-        prevProps.item === nextProps.item && // Shallow equality for item object
-        prevProps.schema === nextProps.schema // Schema usually stable
-        // We purposefully ignore onUpdate/onRemove assuming they function identically
+        prev.index === next.index &&
+        prev.item === next.item && // Shallow check of the item object
+        prev.schema === next.schema
     );
 });
-
 ListItemRow.displayName = 'ListItemRow';
 
-
-
-// --- List Editor with Schema Support ---
-interface SchemaField {
-    key: string;
-    type: 'text' | 'longText' | 'image' | 'video' | 'button' | 'list';
-}
-
+// --- 6. List Editor (Logic Optimized for Performance) ---
 const ListEditor: React.FC<ValueEditorProps> = React.memo(({ value, onChange }) => {
+    // Ensure items is an array
     const items = Array.isArray(value) ? value : [];
-    const [schema, setSchema] = useState<SchemaField[]>([]);
-    const [isConfiguring, setIsConfiguring] = useState(false);
     
-    // --- CRITICAL FIX: Use Ref to hold items ---
-    // This allows us to remove 'items' from the useCallback dependencies
+    // Use Ref to hold items to break the dependency cycle in callbacks
     const itemsRef = useRef(items);
     itemsRef.current = items;
 
-    // Initial Inference
+    const [schema, setSchema] = useState<SchemaField[]>([]);
+    const [isConfiguring, setIsConfiguring] = useState(false);
+
+    // Initial Schema Inference
     useEffect(() => {
         if (schema.length === 0 && items.length > 0) {
             const firstItem = items[0];
             const inferredSchema: SchemaField[] = Object.keys(firstItem).map(key => {
                 const val = firstItem[key];
                 let type: SchemaField['type'] = 'text';
-                // Heuristics
+                
+                // Heuristics for type detection
                 if (typeof val === 'string' && val.length > 60) type = 'longText';
                 else if (Array.isArray(val)) type = 'list';
                 else if (typeof val === 'object' && val !== null) {
+                        // Case insensitive check for Video/Image keys
                         if ('url' in val && key.toLowerCase().includes('video')) type = 'video';
                         else if ('url' in val) type = 'image';
                         else if ('link' in val) type = 'button';
@@ -305,20 +305,20 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(({ value, onChange }) 
             });
             setSchema(inferredSchema);
         } else if (schema.length === 0) {
+            // Default Fallback
             setSchema([{ key: 'title', type: 'text' }, { key: 'description', type: 'longText' }]);
         }
-    }, [items.length]); // Check specifically on length, not the array object itself
+    }, [items.length]); // Only re-run if length changes from 0 to 1 ideally
 
     const handleAddItem = useCallback(() => {
-        // Use logic based on schema...
         const newItem: any = {};
         schema.forEach(field => {
-             // ... (same init logic as before) ...
             if (field.type === 'text' || field.type === 'longText') newItem[field.key] = '';
             else if (field.type === 'image' || field.type === 'video') newItem[field.key] = { url: '' };
             else if (field.type === 'button') newItem[field.key] = { text: 'Button', link: '#' };
             else if (field.type === 'list') newItem[field.key] = [];
         });
+        // Use ref to get latest items without adding dependency
         onChange([...itemsRef.current, newItem]);
     }, [schema, onChange]);
 
@@ -327,26 +327,65 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(({ value, onChange }) 
         onChange(newItems);
     }, [onChange]);
 
-    // --- CRITICAL FIX: Stable Callback ---
+    // This callback is now stable and doesn't depend on 'items'
     const handleUpdateItem = useCallback((index: number, key: string, val: any) => {
-        const newItems = [...itemsRef.current]; // Read from Ref
+        const newItems = [...itemsRef.current];
         newItems[index] = { ...newItems[index], [key]: val };
         onChange(newItems);
-    }, [onChange]); // 'items' is NO LONGER a dependency
+    }, [onChange]);
 
-    // ... handleRemoveField / handleRenameField (similarly use itemsRef if needed) ...
+    const handleRemoveField = (idx: number) => {
+        const fieldToRemove = schema[idx].key;
+        setSchema(schema.filter((_, i) => i !== idx));
+        onChange(itemsRef.current.map(item => {
+            const newItem = { ...item };
+            delete newItem[fieldToRemove];
+            return newItem;
+        }));
+        toast.success(`Removed field "${fieldToRemove}"`);
+    };
+
+    const handleRenameField = (idx: number, newKey: string) => {
+        const oldKey = schema[idx].key;
+        if (oldKey === newKey) return;
+        setSchema(schema.map((f, i) => i === idx ? { ...f, key: newKey } : f));
+        onChange(itemsRef.current.map(item => {
+            const newItem = { ...item };
+            if (oldKey in newItem) { newItem[newKey] = newItem[oldKey]; delete newItem[oldKey]; }
+            return newItem;
+        }));
+    };
 
     return (
         <div className="space-y-4">
-             {/* ... Header / Config UI ... */}
-             <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
                  <div className="text-xs text-gray-500 italic font-medium">{items.length} items</div>
                  <button type="button" onClick={() => setIsConfiguring(!isConfiguring)} className={`flex items-center text-xs font-bold px-3 py-1.5 rounded-lg border ${isConfiguring ? 'bg-blue-600 text-white border-blue-600' : 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100'}`}>
                      <Settings size={14} className="mr-1.5" /> {isConfiguring ? 'Done' : 'Config'}
                  </button>
             </div>
-            {/* ... Config Panel ... */}
-            {isConfiguring && ( /* ... */ null )} 
+
+            {isConfiguring && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 space-y-4">
+                    <div className="space-y-2">
+                        {schema.map((field, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                                <input type="text" value={field.key} onChange={(e) => handleRenameField(idx, e.target.value)} className="flex-1 text-xs font-bold border border-blue-200 rounded-lg px-3 py-2" placeholder="field_key" />
+                                <select value={field.type} onChange={(e) => setSchema(schema.map((f, i) => i === idx ? { ...f, type: e.target.value as any } : f))} className="text-xs font-semibold border border-blue-200 rounded-lg px-3 py-2 bg-white">
+                                    <option value="text">Short Text</option>
+                                    <option value="longText">Rich Content</option>
+                                    <option value="image">Image</option>
+                                    <option value="video">Video</option>
+                                    <option value="button">CTA</option>
+                                    <option value="list">Nested List</option>
+                                </select>
+                                <button type="button" onClick={() => handleRemoveField(idx)} className="p-2 text-blue-300 hover:text-red-500 bg-white border border-blue-100 rounded-lg"><Trash2 size={16} /></button>
+                            </div>
+                        ))}
+                    </div>
+                    <button type="button" onClick={() => setSchema([...schema, { key: `field_${schema.length + 1}`, type: 'text' }])} className="w-full py-2 bg-white border-2 border-dashed border-blue-200 rounded-lg text-blue-500 text-xs font-bold">+ New Field</button>
+                </div>
+            )}
 
             <div className="space-y-4">
                 {items.length === 0 && !isConfiguring && (
@@ -355,6 +394,9 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(({ value, onChange }) 
                         <button type="button" onClick={handleAddItem} className="text-blue-600 font-bold text-[10px] hover:underline">Add First Item</button>
                     </div>
                 )}
+                {/* We map over the array, but Memoized Row prevents re-renders 
+                   unless the specific item changes 
+                */}
                 {items.map((item: any, index: number) => (
                     <ListItemRow 
                         key={index} 
@@ -366,16 +408,15 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(({ value, onChange }) 
                     />
                 ))}
                 {items.length > 0 && (
-                     <button type="button" onClick={handleAddItem} className="w-full py-3 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-xs font-bold hover:bg-gray-100 flex items-center justify-center"><Plus size={16} className="mr-2" /> Add Entry</button>
+                    <button type="button" onClick={handleAddItem} className="w-full py-3 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-xs font-bold hover:bg-gray-100 flex items-center justify-center"><Plus size={16} className="mr-2" /> Add Entry</button>
                 )}
             </div>
         </div>
     );
 });
-
 ListEditor.displayName = 'ListEditor';
 
-// --- Main Value Editor Switcher ---
+// --- Main Export ---
 export const ValueEditors: React.FC<ValueEditorProps> = (props) => {
   const { type, value, onChange } = props;
   const [jsonMode, setJsonMode] = useState(false);
