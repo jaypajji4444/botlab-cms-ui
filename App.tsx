@@ -5,6 +5,8 @@ import { Layout } from "./components/Layout";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { BlogEditor } from "./pages/blogs/BlogEditor";
 import { BlogList } from "./pages/blogs/BlogList";
+import { JobEditor } from "./pages/careers/JobEditor";
+import { JobList } from "./pages/careers/JobList";
 import { ContactList } from "./pages/contacts/ContactList";
 import { Dashboard } from "./pages/Dashboard";
 import { Login } from "./pages/Login";
@@ -61,6 +63,10 @@ const AppRoutes: React.FC = () => {
           <Route path="reports" element={<ReportList />} />
           <Route path="reports/create" element={<ReportEditor />} />
           <Route path="reports/edit/:id" element={<ReportEditor />} />
+
+          <Route path="careers" element={<JobList />} />
+          <Route path="careers/create" element={<JobEditor />} />
+          <Route path="careers/edit/:id" element={<JobEditor />} />
 
           <Route path="contacts" element={<ContactList />} />
         </Route>

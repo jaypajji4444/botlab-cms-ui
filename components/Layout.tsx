@@ -9,6 +9,7 @@ import {
   Menu,
   Settings,
   X,
+  Zap,
 } from "lucide-react";
 import React from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
@@ -27,6 +28,7 @@ export const Layout: React.FC = () => {
     { label: "Contacts", path: "/contacts", icon: <Mail size={20} /> },
     { label: "Portfolios", path: "/portfolios", icon: <Briefcase size={20} /> },
     { label: "Reports", path: "/reports", icon: <FileText size={20} /> },
+    { label: "Careers", path: "/careers", icon: <Zap size={20} /> },
   ];
 
   return (

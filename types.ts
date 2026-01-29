@@ -129,3 +129,48 @@ export interface ReportDto extends CreateReportDto {
   createdAt: string;
   updatedAt: string;
 }
+
+export type JobStatus = "draft" | "published" | "closed";
+
+export interface CreateJobDto {
+  title: string;
+  slug: string;
+  location: string;
+  department: string;
+  type: string;
+  experience: string;
+  workMode?: string;
+  description: string; // About the role
+  responsibilities: string; // Key Responsibilities
+  skills: string; // Skills/Competencies
+  status: JobStatus;
+  isActive: boolean;
+}
+
+export interface JobDto extends CreateJobDto {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateApplicationDto {
+  jobId: string;
+  name: string;
+  email: string;
+  mobileNumber: string;
+  currentLocation: string;
+  resumeUrl: string;
+  totalExperience: string;
+  relevantExperience: string;
+  currentEmployer?: string;
+  currentCtc?: string;
+  expectedCtc?: string;
+  noticePeriod: string;
+  highestQualification: string;
+  portfolioLink?: string;
+}
+
+export interface ApplicationDto extends CreateApplicationDto {
+  id: string;
+  createdAt: string;
+}
