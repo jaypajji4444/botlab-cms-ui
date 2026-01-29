@@ -59,21 +59,28 @@ export interface NavItem {
 
 export type BlogStatus = "draft" | "published";
 
+export interface FaqDto {
+  question: string;
+  answer: string;
+}
+
+export interface TableOfContentDto {
+  text: string;
+  id: string;
+  level?: number;
+}
+
 export interface CreateBlogDto {
   title: string;
   slug: string;
-  content: string; // RTE HTML output
+  content: string;
   status: BlogStatus;
-  metadata?: Record<string, unknown>;
-  isIndexable?: boolean;
-  category?: string;
+  category: string;
   preview?: string;
-}
-
-export interface BlogDto extends CreateBlogDto {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
+  isIndexable?: boolean;
+  metadata?: Record<string, unknown>;
+  faqs?: FaqDto[];
+  tableOfContent?: TableOfContentDto[];
 }
 
 export interface CreateContactDto {

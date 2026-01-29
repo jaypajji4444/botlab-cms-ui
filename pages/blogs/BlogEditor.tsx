@@ -2,11 +2,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowLeft,
   Globe,
+  HelpCircle,
   Image as ImageIcon,
   Info,
+  ListTree,
   Loader2,
+  Plus,
   Settings,
   Tag,
+  Trash2,
   UploadCloud,
 } from "lucide-react";
 import React, {
@@ -16,7 +20,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import ReactQuill from "react-quill";
 import { useNavigate, useParams } from "react-router-dom";
@@ -26,6 +30,17 @@ import { filesApi } from "../../client/files";
 import { Button } from "../../components/ui/Button";
 
 // Zod Schema for Blog
+const faqSchema = z.object({
+  question: z.string().min(1, "Question is required"),
+  answer: z.string().min(1, "Answer is required"),
+});
+
+const tocSchema = z.object({
+  text: z.string(),
+  id: z.string(),
+  level: z.number().optional(),
+});
+
 const blogSchema = z.object({
   title: z.string().min(1, "Title is required"),
   slug: z
@@ -38,6 +53,8 @@ const blogSchema = z.object({
   preview: z.string().optional(),
   isIndexable: z.boolean().optional(),
   metadata: z.any().optional(),
+  faqs: z.array(faqSchema).optional(),
+  tableOfContent: z.array(tocSchema).optional(),
 });
 
 type BlogFormValues = z.infer<typeof blogSchema>;
@@ -51,6 +68,9 @@ export const BlogEditor: React.FC = () => {
 
   const [metaJson, setMetaJson] = useState("{}");
   const [isPreviewUploading, setIsPreviewUploading] = useState(false);
+  const [detectedHeaders, setDetectedHeaders] = useState<
+    { text: string; level: number }[]
+  >([]);
 
   const {
     register,
@@ -71,11 +91,36 @@ export const BlogEditor: React.FC = () => {
       preview: "",
       isIndexable: true,
       metadata: {},
+      faqs: [],
+      tableOfContent: [],
     },
+  });
+
+  const {
+    fields: faqFields,
+    append: appendFaq,
+    remove: removeFaq,
+  } = useFieldArray({
+    control,
+    name: "faqs",
   });
 
   const titleValue = watch("title");
   const previewUrl = watch("preview");
+  const contentValue = watch("content");
+
+  // Automatically update detected headers for UI feedback
+  useEffect(() => {
+    if (!contentValue) return;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(contentValue, "text/html");
+    const headers = doc.querySelectorAll("h2, h3");
+    const list = Array.from(headers).map((h) => ({
+      text: h.textContent || "",
+      level: parseInt(h.tagName.substring(1)),
+    }));
+    setDetectedHeaders(list);
+  }, [contentValue]);
 
   useEffect(() => {
     if (!isEditMode && titleValue) {
@@ -102,6 +147,8 @@ export const BlogEditor: React.FC = () => {
               preview: data.preview || "",
               isIndexable: data.isIndexable ?? true,
               metadata: data.metadata || {},
+              faqs: data.faqs || [],
+              tableOfContent: data.tableOfContent || [],
             });
             setMetaJson(JSON.stringify(data.metadata || {}, null, 2));
           }
@@ -133,7 +180,6 @@ export const BlogEditor: React.FC = () => {
     }
   };
 
-  // Custom Image Handler for Quill
   const imageHandler = useCallback(() => {
     const input = document.createElement("input");
     input.setAttribute("type", "file");
@@ -178,6 +224,38 @@ export const BlogEditor: React.FC = () => {
     [imageHandler],
   );
 
+  // Automated Content Processing: IDs and TOC
+  const processBlogContent = (html: string) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const headers = doc.querySelectorAll("h2, h3");
+    const toc: { text: string; id: string; level: number }[] = [];
+
+    headers.forEach((header, index) => {
+      const text = header.textContent || "";
+      // Create a slug from text, fallback to index-based if empty
+      let baseId = text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+      if (!baseId) baseId = `heading-${index}`;
+
+      header.setAttribute("id", baseId);
+
+      toc.push({
+        text,
+        id: baseId,
+        level: parseInt(header.tagName.substring(1)),
+      });
+    });
+
+    return {
+      processedHtml: doc.body.innerHTML,
+      tableOfContent: toc,
+    };
+  };
+
   const onSubmit = async (data: BlogFormValues) => {
     try {
       let parsedMeta = {};
@@ -188,13 +266,23 @@ export const BlogEditor: React.FC = () => {
         return;
       }
 
-      const payload = { ...data, metadata: parsedMeta };
+      // Automatically handle ToC and Header IDs
+      const { processedHtml, tableOfContent } = processBlogContent(
+        data.content,
+      );
+
+      const payload = {
+        ...data,
+        content: processedHtml,
+        tableOfContent,
+        metadata: parsedMeta,
+      };
 
       if (isEditMode && id) {
-        await blogsApi.update(id, payload);
+        await blogsApi.update(id, payload as any);
         toast.success("Blog post updated");
       } else {
-        await blogsApi.create(payload);
+        await blogsApi.create(payload as any);
         toast.success("Blog post published");
       }
       navigate("/blogs");
@@ -232,6 +320,7 @@ export const BlogEditor: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-6">
+          {/* Main Content Block */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 space-y-6">
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-2">
@@ -276,10 +365,88 @@ export const BlogEditor: React.FC = () => {
                   {errors.content.message}
                 </p>
               )}
+              <p className="text-[10px] text-gray-400 mt-2 font-medium italic">
+                * Header IDs and Table of Contents will be generated
+                automatically upon save.
+              </p>
+            </div>
+          </div>
+
+          {/* FAQs Section */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-6 border-b pb-4">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                  <HelpCircle className="mr-2 text-blue-500" size={20} />{" "}
+                  Frequently Asked Questions
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Add Q&A pairs to appear at the end of the blog.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => appendFaq({ question: "", answer: "" })}
+              >
+                <Plus size={14} className="mr-1.5" /> Add FAQ
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {faqFields.length === 0 && (
+                <div className="text-center py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-100">
+                  <HelpCircle
+                    size={32}
+                    className="mx-auto text-gray-200 mb-2"
+                  />
+                  <p className="text-xs font-medium text-gray-400">
+                    No FAQs added for this post.
+                  </p>
+                </div>
+              )}
+              {faqFields.map((field, index) => (
+                <div
+                  key={field.id}
+                  className="p-4 bg-gray-50 rounded-xl border border-gray-100 relative group animate-in slide-in-from-left-2 duration-200"
+                >
+                  <button
+                    type="button"
+                    onClick={() => removeFaq(index)}
+                    className="absolute top-2 right-2 text-gray-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+                        Question {index + 1}
+                      </label>
+                      <input
+                        {...register(`faqs.${index}.question` as const)}
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        placeholder="Ask something..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">
+                        Answer
+                      </label>
+                      <textarea
+                        {...register(`faqs.${index}.answer` as const)}
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all h-20"
+                        placeholder="Provide a helpful answer..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
+        {/* Sidebar */}
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 space-y-6 sticky top-6 overflow-hidden">
             {/* Featured Image */}
@@ -342,6 +509,35 @@ export const BlogEditor: React.FC = () => {
               </div>
             </div>
 
+            {/* ToC Status */}
+            <div>
+              <h2 className="font-bold text-gray-900 flex items-center text-sm border-b pb-3 mb-4">
+                <ListTree size={16} className="mr-2 text-emerald-600" /> TOC
+                STRUCTURE
+              </h2>
+              <div className="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                {detectedHeaders.length === 0 ? (
+                  <p className="text-[10px] text-gray-400 italic">
+                    No H2 or H3 headers detected yet.
+                  </p>
+                ) : (
+                  detectedHeaders.map((h, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-start space-x-2 ${h.level === 3 ? "ml-4" : ""}`}
+                    >
+                      <div
+                        className={`mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0 ${h.level === 2 ? "bg-emerald-400" : "bg-emerald-200"}`}
+                      />
+                      <span className="text-[10px] font-medium text-gray-600 truncate">
+                        {h.text}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
             {/* Settings */}
             <div>
               <h2 className="font-bold text-gray-900 flex items-center text-sm border-b pb-3 mb-4">
@@ -358,11 +554,6 @@ export const BlogEditor: React.FC = () => {
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                     placeholder="e.g. Technology"
                   />
-                  {errors.category && (
-                    <p className="text-red-500 text-[10px] mt-1 font-medium">
-                      {errors.category.message}
-                    </p>
-                  )}
                 </div>
 
                 <div>
@@ -392,11 +583,6 @@ export const BlogEditor: React.FC = () => {
                       placeholder="article-slug"
                     />
                   </div>
-                  {errors.slug && (
-                    <p className="text-red-500 text-[10px] mt-1 font-medium">
-                      {errors.slug.message}
-                    </p>
-                  )}
                 </div>
 
                 <div className="pt-2">
