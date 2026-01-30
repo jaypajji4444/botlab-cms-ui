@@ -16,7 +16,7 @@ import React, {
 } from "react";
 import { toast } from "react-hot-toast";
 import ReactQuill from "react-quill";
-import { filesApi } from "../../client/files"; // Ensure this path matches
+import { filesApi } from "../../client/files";
 
 // --- Types ---
 interface ValueEditorProps {
@@ -27,7 +27,15 @@ interface ValueEditorProps {
 
 interface SchemaField {
   key: string;
-  type: "text" | "longText" | "image" | "video" | "button" | "list";
+  // Added 'richText' to distinguish from plain 'longText'
+  type:
+    | "text"
+    | "longText"
+    | "richText"
+    | "image"
+    | "video"
+    | "button"
+    | "list";
 }
 
 // --- Constants ---
@@ -48,7 +56,7 @@ const SIMPLE_QUILL_MODULES = {
   ],
 };
 
-// --- 1. Isolated Quill Component (Prevents heavy re-renders in lists) ---
+// --- 1. Isolated Quill Component ---
 const MemoizedQuill = React.memo(
   ({ value, onChange }: { value: string; onChange: (val: string) => void }) => {
     return (
@@ -127,7 +135,6 @@ const MediaEditor = React.memo(
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Safe data extraction
     const data =
       typeof value === "object" && value !== null
         ? value
@@ -328,7 +335,7 @@ const ListItemRow = React.memo(
                 {field.key.replace(/_/g, " ")}
               </label>
 
-              {/* Text: Ensure safe string value to prevent object crashes */}
+              {/* 1. Short Text */}
               {field.type === "text" && (
                 <input
                   type="text"
@@ -340,8 +347,19 @@ const ListItemRow = React.memo(
                 />
               )}
 
-              {/* LongText: Uses Isolated Memoized Component */}
+              {/* 2. Long Text (Plain TextArea - No <p> tags) */}
               {field.type === "longText" && (
+                <textarea
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm h-24 focus:ring-2 focus:ring-blue-500 outline-none resize-y"
+                  value={
+                    typeof item[field.key] === "string" ? item[field.key] : ""
+                  }
+                  onChange={(e) => onUpdate(index, field.key, e.target.value)}
+                />
+              )}
+
+              {/* 3. Rich Text (Quill - Adds formatting) */}
+              {field.type === "richText" && (
                 <MemoizedQuill
                   value={
                     typeof item[field.key] === "string" ? item[field.key] : ""
@@ -382,24 +400,19 @@ const ListItemRow = React.memo(
     );
   },
   (prev, next) => {
-    // Custom comparison to prevent re-renders when functions are recreated
-    // This is crucial for performance with complex lists
     return (
       prev.index === next.index &&
-      prev.item === next.item && // Shallow check of the item object
+      prev.item === next.item &&
       prev.schema === next.schema
     );
   },
 );
 ListItemRow.displayName = "ListItemRow";
 
-// --- 6. List Editor (Logic Optimized for Performance) ---
+// --- 6. List Editor (Inference Logic Updated) ---
 const ListEditor: React.FC<ValueEditorProps> = React.memo(
   ({ value, onChange }) => {
-    // Ensure items is an array
     const items = Array.isArray(value) ? value : [];
-
-    // Use Ref to hold items to break the dependency cycle in callbacks
     const itemsRef = useRef(items);
     itemsRef.current = items;
 
@@ -415,11 +428,19 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
             const val = firstItem[key];
             let type: SchemaField["type"] = "text";
 
-            // Heuristics for type detection
-            if (typeof val === "string" && val.length > 60) type = "longText";
-            else if (Array.isArray(val)) type = "list";
+            // Heuristics
+            if (typeof val === "string") {
+              // Check if string contains HTML tags (e.g., <p>, <br>, <b>)
+              const hasHtml = /<[a-z][\s\S]*>/i.test(val);
+
+              if (hasHtml) {
+                type = "richText";
+              } else if (val.length > 60) {
+                // Long plain text -> Textarea
+                type = "longText";
+              }
+            } else if (Array.isArray(val)) type = "list";
             else if (typeof val === "object" && val !== null) {
-              // Case insensitive check for Video/Image keys
               if ("url" in val && key.toLowerCase().includes("video"))
                 type = "video";
               else if ("url" in val) type = "image";
@@ -430,18 +451,21 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
         );
         setSchema(inferredSchema);
       } else if (schema.length === 0) {
-        // Default Fallback
         setSchema([
           { key: "title", type: "text" },
           { key: "description", type: "longText" },
         ]);
       }
-    }, [items.length]); // Only re-run if length changes from 0 to 1 ideally
+    }, [items.length]);
 
     const handleAddItem = useCallback(() => {
       const newItem: any = {};
       schema.forEach((field) => {
-        if (field.type === "text" || field.type === "longText")
+        if (
+          field.type === "text" ||
+          field.type === "longText" ||
+          field.type === "richText"
+        )
           newItem[field.key] = "";
         else if (field.type === "image" || field.type === "video")
           newItem[field.key] = { url: "" };
@@ -449,7 +473,6 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
           newItem[field.key] = { text: "Button", link: "#" };
         else if (field.type === "list") newItem[field.key] = [];
       });
-      // Use ref to get latest items without adding dependency
       onChange([...itemsRef.current, newItem]);
     }, [schema, onChange]);
 
@@ -461,7 +484,6 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
       [onChange],
     );
 
-    // This callback is now stable and doesn't depend on 'items'
     const handleUpdateItem = useCallback(
       (index: number, key: string, val: any) => {
         const newItems = [...itemsRef.current];
@@ -540,7 +562,8 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
                     className="text-xs font-semibold border border-blue-200 rounded-lg px-3 py-2 bg-white"
                   >
                     <option value="text">Short Text</option>
-                    <option value="longText">Rich Content</option>
+                    <option value="longText">Long Text (Plain)</option>
+                    <option value="richText">Rich Text (HTML)</option>
                     <option value="image">Image</option>
                     <option value="video">Video</option>
                     <option value="button">CTA</option>
@@ -584,9 +607,6 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
               </button>
             </div>
           )}
-          {/* We map over the array, but Memoized Row prevents re-renders 
-                   unless the specific item changes 
-                */}
           {items.map((item: any, index: number) => (
             <ListItemRow
               key={index}
