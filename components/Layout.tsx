@@ -29,6 +29,11 @@ export const Layout: React.FC = () => {
     { label: "Portfolios", path: "/portfolios", icon: <Briefcase size={20} /> },
     { label: "Reports", path: "/reports", icon: <FileText size={20} /> },
     { label: "Careers", path: "/careers", icon: <Zap size={20} /> },
+    {
+      label: "Case Studies",
+      path: "/case-studies",
+      icon: <Briefcase size={20} />,
+    },
   ];
 
   return (

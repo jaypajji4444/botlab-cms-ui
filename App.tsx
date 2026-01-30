@@ -7,6 +7,8 @@ import { BlogEditor } from "./pages/blogs/BlogEditor";
 import { BlogList } from "./pages/blogs/BlogList";
 import { JobEditor } from "./pages/careers/JobEditor";
 import { JobList } from "./pages/careers/JobList";
+import { CaseStudyEditor } from "./pages/caseStudies/CaseStudyEditor";
+import { CaseStudyList } from "./pages/caseStudies/CaseStudyList";
 import { ContactList } from "./pages/contacts/ContactList";
 import { Dashboard } from "./pages/Dashboard";
 import { Login } from "./pages/Login";
@@ -67,6 +69,10 @@ const AppRoutes: React.FC = () => {
           <Route path="careers" element={<JobList />} />
           <Route path="careers/create" element={<JobEditor />} />
           <Route path="careers/edit/:id" element={<JobEditor />} />
+
+          <Route path="case-studies" element={<CaseStudyList />} />
+          <Route path="case-studies/create" element={<CaseStudyEditor />} />
+          <Route path="case-studies/edit/:id" element={<CaseStudyEditor />} />
 
           <Route path="contacts" element={<ContactList />} />
         </Route>

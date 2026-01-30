@@ -174,3 +174,21 @@ export interface ApplicationDto extends CreateApplicationDto {
   id: string;
   createdAt: string;
 }
+
+// Case Study Types
+export interface CreateCaseStudyDto {
+  title: string;
+  slug: string;
+  category: string;
+  date: string; // ISO date string
+  fileUrl: string; // PDF URL
+  preview: string; // Image URL
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface CaseStudyDto extends CreateCaseStudyDto {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
