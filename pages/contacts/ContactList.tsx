@@ -25,7 +25,7 @@ export const ContactList: React.FC = () => {
     setLoading(true);
     try {
       const data = await contactsApi.getAll();
-      setContacts(data);
+      setContacts(data || []);
     } catch (err) {
       toast.error("Failed to load contacts");
     } finally {
@@ -49,13 +49,29 @@ export const ContactList: React.FC = () => {
     }
   };
 
-  const filteredContacts = contacts.filter(
-    (c) =>
-      `${c.firstName} ${c.lastName}`
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      c.email.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredContacts = contacts.filter((c) => {
+    const fullName = `${c.firstName || ""} ${c.lastName || ""}`.toLowerCase();
+    const email = (c.email || "").toLowerCase();
+    const searchTerm = search.toLowerCase();
+    return fullName.includes(searchTerm) || email.includes(searchTerm);
+  });
+
+  const getDisplayName = (contact: ContactDto) => {
+    const name = `${contact.firstName || ""} ${contact.lastName || ""}`.trim();
+    if (name) return name;
+    if (contact.email) return contact.email.split("@")[0];
+    return "Anonymous Visitor";
+  };
+
+  const getInitials = (contact: ContactDto) => {
+    if (contact.firstName && contact.lastName) {
+      return (contact.firstName[0] + contact.lastName[0]).toUpperCase();
+    }
+    if (contact.firstName) return contact.firstName[0].toUpperCase();
+    if (contact.lastName) return contact.lastName[0].toUpperCase();
+    if (contact.email) return contact.email[0].toUpperCase();
+    return "?";
+  };
 
   return (
     <div className="space-y-6">
@@ -124,17 +140,16 @@ export const ContactList: React.FC = () => {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
-                        <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold uppercase">
-                          {contact.firstName[0]}
-                          {contact.lastName[0]}
+                        <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold uppercase overflow-hidden">
+                          {getInitials(contact)}
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900">
-                            {contact.firstName} {contact.lastName}
+                            {getDisplayName(contact)}
                           </div>
                           <div className="text-xs text-gray-500 flex items-center mt-0.5">
                             <Mail size={12} className="mr-1 opacity-60" />{" "}
-                            {contact.email}
+                            {contact.email || "No email provided"}
                           </div>
                         </div>
                       </div>
@@ -142,7 +157,7 @@ export const ContactList: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-600 flex items-center">
                         <Phone size={14} className="mr-1.5 opacity-50" />{" "}
-                        {contact.mobileNumber}
+                        {contact.mobileNumber || "N/A"}
                       </div>
                       {contact.message && (
                         <div className="text-xs text-gray-400 mt-1 line-clamp-1 italic">
@@ -153,7 +168,9 @@ export const ContactList: React.FC = () => {
                     <td className="px-6 py-4 text-sm text-gray-500">
                       <div className="flex items-center">
                         <Calendar size={14} className="mr-1.5 opacity-50" />
-                        {new Date(contact.createdAt).toLocaleDateString()}
+                        {contact.createdAt
+                          ? new Date(contact.createdAt).toLocaleDateString()
+                          : "Unknown"}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -212,7 +229,7 @@ export const ContactList: React.FC = () => {
                     First Name
                   </label>
                   <p className="text-gray-900 font-medium">
-                    {selectedContact.firstName}
+                    {selectedContact.firstName || "—"}
                   </p>
                 </div>
                 <div>
@@ -220,25 +237,25 @@ export const ContactList: React.FC = () => {
                     Last Name
                   </label>
                   <p className="text-gray-900 font-medium">
-                    {selectedContact.lastName}
+                    {selectedContact.lastName || "—"}
                   </p>
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
                     Email Address
                   </label>
                   <p className="text-gray-900 font-medium flex items-center">
                     <Mail size={14} className="mr-1.5 text-blue-500" />{" "}
-                    {selectedContact.email}
+                    {selectedContact.email || "Not provided"}
                   </p>
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
                     Mobile Number
                   </label>
                   <p className="text-gray-900 font-medium flex items-center">
                     <Phone size={14} className="mr-1.5 text-blue-500" />{" "}
-                    {selectedContact.mobileNumber}
+                    {selectedContact.mobileNumber || "Not provided"}
                   </p>
                 </div>
               </div>
@@ -254,8 +271,11 @@ export const ContactList: React.FC = () => {
 
               <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
                 <span className="flex items-center">
-                  <Calendar size={12} className="mr-1" /> Submitted on{" "}
-                  {new Date(selectedContact.createdAt).toLocaleString()}
+                  <Calendar size={12} className="mr-1" />
+                  Submitted on{" "}
+                  {selectedContact.createdAt
+                    ? new Date(selectedContact.createdAt).toLocaleString()
+                    : "Unknown date"}
                 </span>
                 <span className="font-mono uppercase">
                   ID: {selectedContact.id.slice(-8)}
