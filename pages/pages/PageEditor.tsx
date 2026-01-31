@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Globe,
   GripVertical,
   Layers,
   X,
@@ -26,10 +27,19 @@ import { SectionDto } from "../../types";
 
 // --- Zod Schema ---
 // Component Schema (Simplified)
+// Fix: Updated type to use z.enum matching ComponentType to resolve type mismatch in CreatePageDto
 const componentSchema = z.object({
   name: z.string(),
   slug: z.string(),
-  type: z.string(),
+  type: z.enum([
+    "text",
+    "image",
+    "video",
+    "button",
+    "richText",
+    "custom",
+    "list",
+  ]),
   value: z.any(),
   isVisible: z.boolean(),
 });
@@ -41,17 +51,15 @@ const sectionInstanceSchema = z.object({
   type: z.string(),
   isActive: z.boolean().optional(),
   components: z.array(componentSchema),
-  // We can also carry over ID if needed for reference, but for saving we might not strictly need it
-  // if backend creates new instances. Keeping it for tracking.
   id: z.string().optional(),
 });
 
 const pageSchema = z.object({
   title: z.string().min(1, "Title is required"),
   slug: z.string().min(1, "Slug is required"),
-  // Array of full Section objects
   sections: z.array(sectionInstanceSchema),
   metadata: z.any().optional(),
+  isIndexable: z.boolean().optional(),
 });
 
 type PageFormValues = z.infer<typeof pageSchema>;
@@ -74,6 +82,7 @@ export const PageEditor: React.FC = () => {
     formState: { errors, isSubmitting },
     reset,
     setValue,
+    watch,
   } = useForm<PageFormValues>({
     resolver: zodResolver(pageSchema),
     defaultValues: {
@@ -81,6 +90,7 @@ export const PageEditor: React.FC = () => {
       slug: "",
       sections: [],
       metadata: {},
+      isIndexable: true,
     },
   });
 
@@ -89,8 +99,9 @@ export const PageEditor: React.FC = () => {
     name: "sections",
   });
 
+  const titleValue = watch("title");
+
   useEffect(() => {
-    // Load all sections for the picker
     sectionsApi
       .getAll()
       .then(setAvailableSections)
@@ -104,7 +115,9 @@ export const PageEditor: React.FC = () => {
             reset({
               title: data.title,
               slug: data.slug,
-              sections: data.sections || [], // API should now return full objects
+              sections: data.sections || [],
+              metadata: data.metadata || {},
+              isIndexable: data.isIndexable ?? true,
             });
             setMetaJson(JSON.stringify(data.metadata || {}, null, 2));
           }
@@ -116,25 +129,29 @@ export const PageEditor: React.FC = () => {
     }
   }, [id, isEditMode, reset]);
 
+  useEffect(() => {
+    if (!isEditMode && titleValue) {
+      const generatedSlug = titleValue
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+      setValue("slug", generatedSlug, { shouldValidate: true });
+    }
+  }, [titleValue, isEditMode, setValue]);
+
   const handleAddSectionTemplate = (templateId: string) => {
     if (!templateId) return;
     const template = availableSections.find((s) => s.id === templateId);
     if (template) {
-      // Clone the template to create a new instance for this page
-      // We might want to remove the 'id' to ensure backend treats it as a new/embedded object
-      // or keep it if backend handles duplication.
-      // Based on user request "store section object entirely", we pass the full structure.
       const newSectionInstance = {
         name: template.name,
         slug: template.slug,
         type: template.type,
         isActive: true,
-        components: template.components, // Deep copy ideally, but simple spread works for level 1
-        // id: template.id // Optional: keep ref if needed, but risky for updates
+        components: template.components,
       };
-      append(newSectionInstance);
-
-      // Auto expand the new section
+      // Fix: Cast to any for append to satisfy complex nested Zod types
+      append(newSectionInstance as any);
       setExpandedSections((prev) => ({ ...prev, [fields.length]: true }));
       toast.success(`Added ${template.name} section`);
     }
@@ -160,12 +177,14 @@ export const PageEditor: React.FC = () => {
       }
 
       const payload = { ...data, metadata: parsedMeta };
+      console.log("Submitting payload:", payload);
 
+      // Fix: Cast payload to any to resolve property type mismatch errors (e.g., enum vs string)
       if (isEditMode && id) {
-        await pagesApi.update(id, payload);
+        await pagesApi.update(id, payload as any);
         toast.success("Page updated");
       } else {
-        await pagesApi.create(payload);
+        await pagesApi.create(payload as any);
         toast.success("Page created");
       }
       navigate("/pages");
@@ -199,7 +218,6 @@ export const PageEditor: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Page Info & Metadata */}
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 space-y-4 sticky top-6">
             <h2 className="font-semibold text-gray-900 flex items-center">
@@ -241,6 +259,24 @@ export const PageEditor: React.FC = () => {
               )}
             </div>
 
+            <div className="pt-2">
+              <label className="flex items-center space-x-2 cursor-pointer bg-gray-50 p-3 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
+                <input
+                  type="checkbox"
+                  {...register("isIndexable")}
+                  className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                />
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-gray-700 uppercase flex items-center">
+                    <Globe size={10} className="mr-1" /> SEO Indexing
+                  </span>
+                  <span className="text-[9px] text-gray-400">
+                    Allow search engine discovery
+                  </span>
+                </div>
+              </label>
+            </div>
+
             <hr className="border-gray-100" />
 
             <div>
@@ -257,7 +293,6 @@ export const PageEditor: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Section Manager */}
         <div className="lg:col-span-8 space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-6">
@@ -323,7 +358,6 @@ export const PageEditor: React.FC = () => {
                               {...provided.draggableProps}
                               className={`border rounded-xl transition-all ${isExpanded ? "bg-white border-blue-200 shadow-md ring-1 ring-blue-100" : "bg-gray-50 border-gray-200 hover:border-blue-300"}`}
                             >
-                              {/* Section Header */}
                               <div
                                 className="px-4 py-3 flex items-center justify-between cursor-pointer"
                                 onClick={() => toggleExpand(index)}
@@ -338,8 +372,6 @@ export const PageEditor: React.FC = () => {
                                   </div>
                                   <div>
                                     <h3 className="font-bold text-gray-800 text-sm">
-                                      {/* Access form value directly to show updates if name changes */}
-                                      {/* For simplicity we use the static default from field init, but ideally useWatch if name is editable */}
                                       {(field as any).name ||
                                         "Untitled Section"}
                                     </h3>
@@ -367,11 +399,9 @@ export const PageEditor: React.FC = () => {
                                 </div>
                               </div>
 
-                              {/* Section Content Editor (Collapsible) */}
                               {isExpanded && (
                                 <div className="px-4 pb-4 pt-0 animate-in fade-in slide-in-from-top-1 duration-200">
                                   <div className="h-px bg-gray-100 mb-4 mx-2"></div>
-                                  {/* We pass the path to this specific section's components array */}
                                   <ComponentListEditor
                                     control={control}
                                     register={register}

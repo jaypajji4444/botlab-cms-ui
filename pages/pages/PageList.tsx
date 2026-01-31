@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { pagesApi } from "../../client/pages";
+import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { PageDto } from "../../types";
 
@@ -67,43 +68,48 @@ export const PageList: React.FC = () => {
             >
               <div className="p-6">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">
+                  <div className="flex-1 min-w-0 pr-4">
+                    <h3 className="text-lg font-bold text-gray-900 truncate">
                       {page.title}
                     </h3>
                     <div className="flex items-center text-sm text-gray-500 mt-1">
-                      <Globe size={14} className="mr-1" />
-                      <span className="font-mono">/{page.slug}</span>
+                      <Globe size={14} className="mr-1 flex-shrink-0" />
+                      <span className="font-mono truncate">/{page.slug}</span>
                     </div>
                   </div>
-                  <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-md">
-                    {page.sections?.length || 0} Sections
-                  </span>
+                  <div className="flex flex-col items-end space-y-2">
+                    <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
+                      {page.sections?.length || 0} Sections
+                    </span>
+                    <Badge variant={page.isIndexable ? "success" : "warning"}>
+                      {page.isIndexable ? "INDEXABLE" : "NO-INDEX"}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="mt-4 space-y-2">
                   <div className="text-xs text-gray-400 uppercase font-semibold tracking-wider">
                     Metadata
                   </div>
-                  <div className="text-sm text-gray-600 line-clamp-2">
+                  <div className="text-sm text-gray-600 line-clamp-2 min-h-[40px]">
                     {JSON.stringify(page.metadata || {})}
                   </div>
                 </div>
               </div>
 
               <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-100">
-                <span className="text-xs text-gray-400">
+                <span className="text-[10px] text-gray-400 font-medium">
                   Updated {new Date(page.updatedAt).toLocaleDateString()}
                 </span>
-                <div className="flex space-x-2">
+                <div className="flex space-x-1">
                   <Link to={`/pages/edit/${page.id}`}>
-                    <button className="text-gray-500 hover:text-blue-600 transition-colors p-1">
+                    <button className="text-gray-400 hover:text-blue-600 transition-colors p-2 hover:bg-blue-50 rounded-lg">
                       <Edit2 size={16} />
                     </button>
                   </Link>
                   <button
                     onClick={() => handleDelete(page.id)}
-                    className="text-gray-500 hover:text-red-600 transition-colors p-1"
+                    className="text-gray-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg"
                   >
                     <Trash2 size={16} />
                   </button>

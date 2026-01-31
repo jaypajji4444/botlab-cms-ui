@@ -38,6 +38,7 @@ export interface CreatePageDto {
   slug: string;
   sections?: SectionDto[];
   metadata?: Record<string, unknown>;
+  isIndexable?: boolean;
 }
 
 export interface PageDto extends CreatePageDto {
