@@ -13,11 +13,12 @@ import {
 import React, { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import ReactQuill from "react-quill";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { careersApi } from "../../client/careers";
+import { RichTextEditor } from "../../components/RichTextEditor";
 import { Button } from "../../components/ui/Button";
+// Import the new Tiptap component
 
 const jobSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -31,8 +32,6 @@ const jobSchema = z.object({
   responsibilities: z.string().min(10, "Responsibilities are required"),
   skills: z.string().min(10, "Skills are required"),
   status: z.enum(["draft", "published", "closed"]),
-  // Fix: Removed .default(true) to avoid type mismatch in useForm resolver inference.
-  // isActive is required in JobFormValues, and default values are handled in useForm.
   isActive: z.boolean(),
 });
 
@@ -113,14 +112,6 @@ export const JobEditor: React.FC = () => {
     }
   };
 
-  const quillModules = {
-    toolbar: [
-      ["bold", "italic", "underline"],
-      [{ list: "ordered" }, { list: "bullet" }],
-      ["link", "clean"],
-    ],
-  };
-
   return (
     <div className="max-w-6xl mx-auto pb-20">
       <div className="mb-8 flex items-center justify-between">
@@ -195,7 +186,7 @@ export const JobEditor: React.FC = () => {
             </div>
           </div>
 
-          {/* Detailed Sections (Rich Text) */}
+          {/* Detailed Sections (Rich Text) - Replaced with Tiptap Wrapper */}
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
               <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center">
@@ -206,12 +197,10 @@ export const JobEditor: React.FC = () => {
                 name="description"
                 control={control}
                 render={({ field }) => (
-                  <ReactQuill
-                    theme="snow"
+                  <RichTextEditor
                     value={field.value}
                     onChange={field.onChange}
-                    modules={quillModules}
-                    className="h-48 mb-12"
+                    className="mb-2"
                   />
                 )}
               />
@@ -231,12 +220,10 @@ export const JobEditor: React.FC = () => {
                 name="responsibilities"
                 control={control}
                 render={({ field }) => (
-                  <ReactQuill
-                    theme="snow"
+                  <RichTextEditor
                     value={field.value}
                     onChange={field.onChange}
-                    modules={quillModules}
-                    className="h-48 mb-12"
+                    className="mb-2"
                   />
                 )}
               />
@@ -256,12 +243,10 @@ export const JobEditor: React.FC = () => {
                 name="skills"
                 control={control}
                 render={({ field }) => (
-                  <ReactQuill
-                    theme="snow"
+                  <RichTextEditor
                     value={field.value}
                     onChange={field.onChange}
-                    modules={quillModules}
-                    className="h-48 mb-12"
+                    className="mb-2"
                   />
                 )}
               />
@@ -281,7 +266,7 @@ export const JobEditor: React.FC = () => {
               <Settings size={16} className="mr-2 text-blue-600" /> POSTING
               CONFIG
             </h2>
-
+            {/* ... Existing Sidebar Code ... */}
             <div className="space-y-5">
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase mb-1.5 tracking-widest">

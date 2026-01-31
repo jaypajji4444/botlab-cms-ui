@@ -13,6 +13,10 @@
   "dependencies": {
     "@hello-pangea/dnd": "16.6.0",
     "@hookform/resolvers": "^3.3.4",
+    "@tiptap/extension-link": "^2.27.2",
+    "@tiptap/extension-underline": "^2.27.2",
+    "@tiptap/react": "^2.27.2",
+    "@tiptap/starter-kit": "^2.27.2",
     "axios": "^1.6.0",
     "lucide-react": "^0.358.0",
     "react": "^18.2.0",
