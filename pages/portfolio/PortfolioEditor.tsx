@@ -38,6 +38,8 @@ const portfolioSchema = z.object({
   sections: z.array(sectionInstanceSchema),
   metadata: z.any().optional(),
   status: z.enum(['draft', 'published']).optional(),
+  numberOfDrones: z.coerce.number().optional(),
+  showDuration: z.string().optional(),
 });
 
 type PortfolioFormValues = z.infer<typeof portfolioSchema>;
@@ -64,6 +66,8 @@ export const PortfolioEditor: React.FC = () => {
       sections: [],
       metadata: {},
       status: 'draft',
+      numberOfDrones: undefined,
+      showDuration: '',
     }
   });
 
@@ -87,6 +91,8 @@ export const PortfolioEditor: React.FC = () => {
             isIndexable: data.isIndexable ?? true,
             sections: data.sections || [],
             status: (data as any).status || 'draft',
+            numberOfDrones: (data as any).numberOfDrones || undefined,
+            showDuration: (data as any).showDuration || '',
           });
           const meta = data.metadata || {} as any;
           setSeoTitle(meta.SEOTitle || '');
@@ -216,6 +222,17 @@ export const PortfolioEditor: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Location</label>
                 <input {...register('location')} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Number of Drones</label>
+                <input type="number" {...register('numberOfDrones')} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. 500" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Show Duration</label>
+                <input {...register('showDuration')} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. 8 minutes" />
               </div>
             </div>
 

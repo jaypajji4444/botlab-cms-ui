@@ -112,6 +112,8 @@ export interface CreatePortfolioDto {
   sections: (CreateSectionDto & { id?: string })[];
   metadata?: Record<string, unknown>;
   status?: PortfolioStatus;
+  numberOfDrones?: number;
+  showDuration?: string;
 }
 
 export interface PortfolioDto extends CreatePortfolioDto {
