@@ -67,6 +67,8 @@ export const BlogEditor: React.FC = () => {
   const isEditMode = !!id;
 
   const [metaJson, setMetaJson] = useState("{}");
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
   const [isPreviewUploading, setIsPreviewUploading] = useState(false);
   const [detectedHeaders, setDetectedHeaders] = useState<
     { text: string; level: number }[]
@@ -150,7 +152,11 @@ export const BlogEditor: React.FC = () => {
               faqs: data.faqs || [],
               tableOfContent: data.tableOfContent || [],
             });
-            setMetaJson(JSON.stringify(data.metadata || {}, null, 2));
+            const meta = data.metadata || {} as any;
+            setSeoTitle(meta.SEOTitle || "");
+            setSeoDescription(meta.Desc || "");
+            const { SEOTitle, Desc, ...restMeta } = meta;
+            setMetaJson(JSON.stringify(restMeta, null, 2));
           }
         })
         .catch((err) => {
@@ -258,13 +264,19 @@ export const BlogEditor: React.FC = () => {
 
   const onSubmit = async (data: BlogFormValues) => {
     try {
-      let parsedMeta = {};
+      let parsedMeta: Record<string, unknown> = {};
       try {
         parsedMeta = JSON.parse(metaJson);
       } catch (e) {
         toast.error("Invalid Metadata JSON");
         return;
       }
+
+      const fullMeta = {
+        ...(seoTitle ? { SEOTitle: seoTitle } : {}),
+        ...(seoDescription ? { Desc: seoDescription } : {}),
+        ...parsedMeta,
+      };
 
       // Automatically handle ToC and Header IDs
       const { processedHtml, tableOfContent } = processBlogContent(
@@ -275,7 +287,7 @@ export const BlogEditor: React.FC = () => {
         ...data,
         content: processedHtml,
         tableOfContent,
-        metadata: parsedMeta,
+        metadata: fullMeta,
       };
 
       if (isEditMode && id) {
@@ -609,15 +621,45 @@ export const BlogEditor: React.FC = () => {
 
             <div>
               <h2 className="font-bold text-gray-900 flex items-center text-sm mb-4">
-                <Info size={16} className="mr-2 text-purple-600" /> JSON
+                <Info size={16} className="mr-2 text-purple-600" /> SEO &
                 METADATA
               </h2>
-              <textarea
-                value={metaJson}
-                onChange={(e) => setMetaJson(e.target.value)}
-                className="w-full h-40 font-mono text-[10px] border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
-                placeholder='{"description": "SEO summary...", "tags": ["tech", "ai"]}'
-              />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                    SEO Title
+                  </label>
+                  <input
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Enter SEO title..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                    SEO Description
+                  </label>
+                  <textarea
+                    value={seoDescription}
+                    onChange={(e) => setSeoDescription(e.target.value)}
+                    className="w-full h-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-vertical"
+                    placeholder="Enter SEO description..."
+                  />
+                </div>
+                <div className="h-px bg-gray-100"></div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                    Additional Metadata (JSON)
+                  </label>
+                  <textarea
+                    value={metaJson}
+                    onChange={(e) => setMetaJson(e.target.value)}
+                    className="w-full h-40 font-mono text-[10px] border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                    placeholder='{"Schema": {...}}'
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

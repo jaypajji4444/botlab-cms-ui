@@ -71,6 +71,8 @@ export const PageEditor: React.FC = () => {
 
   const [availableSections, setAvailableSections] = useState<SectionDto[]>([]);
   const [metaJson, setMetaJson] = useState("{}");
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
   const [expandedSections, setExpandedSections] = useState<
     Record<number, boolean>
   >({});
@@ -119,7 +121,11 @@ export const PageEditor: React.FC = () => {
               metadata: data.metadata || {},
               isIndexable: data.isIndexable ?? true,
             });
-            setMetaJson(JSON.stringify(data.metadata || {}, null, 2));
+            const meta = data.metadata || {} as any;
+            setSeoTitle(meta.SEOTitle || "");
+            setSeoDescription(meta.Desc || "");
+            const { SEOTitle, Desc, ...restMeta } = meta;
+            setMetaJson(JSON.stringify(restMeta, null, 2));
           }
         })
         .catch((err) => {
@@ -168,7 +174,7 @@ export const PageEditor: React.FC = () => {
 
   const onSubmit = async (data: PageFormValues) => {
     try {
-      let parsedMeta = {};
+      let parsedMeta: Record<string, unknown> = {};
       try {
         parsedMeta = JSON.parse(metaJson);
       } catch (e) {
@@ -176,7 +182,12 @@ export const PageEditor: React.FC = () => {
         return;
       }
 
-      const payload = { ...data, metadata: parsedMeta };
+      const fullMeta = {
+        ...(seoTitle ? { SEOTitle: seoTitle } : {}),
+        ...(seoDescription ? { Desc: seoDescription } : {}),
+        ...parsedMeta,
+      };
+      const payload = { ...data, metadata: fullMeta };
       console.log("Submitting payload:", payload);
 
       // Fix: Cast payload to any to resolve property type mismatch errors (e.g., enum vs string)
@@ -281,13 +292,39 @@ export const PageEditor: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Metadata (JSON)
+                SEO Title
+              </label>
+              <input
+                value={seoTitle}
+                onChange={(e) => setSeoTitle(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Enter SEO title..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                SEO Description
+              </label>
+              <textarea
+                value={seoDescription}
+                onChange={(e) => setSeoDescription(e.target.value)}
+                className="w-full h-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-vertical"
+                placeholder="Enter SEO description..."
+              />
+            </div>
+
+            <hr className="border-gray-100" />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Additional Metadata (JSON)
               </label>
               <textarea
                 value={metaJson}
                 onChange={(e) => setMetaJson(e.target.value)}
                 className="w-full h-40 font-mono text-xs border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
-                placeholder='{"description": "...", "keywords": []}'
+                placeholder='{"Schema": {...}}'
               />
             </div>
           </div>
