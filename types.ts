@@ -45,6 +45,7 @@ export interface PageDto extends CreatePageDto {
   id: string;
   createdAt: string;
   updatedAt: string;
+  updatedBy?: string;
 }
 
 export interface ResolvedPageDto extends Omit<PageDto, "sections"> {
@@ -115,7 +116,7 @@ export interface PortfolioDto extends CreatePortfolioDto {
   sections: SectionDto[];
 }
 
-export interface ResolvedPortfolioDto extends PortfolioDto {}
+export interface ResolvedPortfolioDto extends PortfolioDto { }
 
 export interface CreateReportDto {
   title: string;

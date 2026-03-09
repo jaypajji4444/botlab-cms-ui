@@ -1,5 +1,14 @@
-import { Edit2, Globe, Plus, Trash2 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Edit2,
+  Globe,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { pagesApi } from "../../client/pages";
@@ -7,9 +16,15 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { PageDto } from "../../types";
 
+type SortField = "title" | "createdAt" | "updatedAt";
+type SortDirection = "asc" | "desc";
+
 export const PageList: React.FC = () => {
   const [pages, setPages] = useState<PageDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<SortField>("updatedAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const fetchPages = async () => {
     setLoading(true);
@@ -38,6 +53,56 @@ export const PageList: React.FC = () => {
     }
   };
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const SortIcon: React.FC<{ field: SortField }> = ({ field }) => {
+    if (sortField !== field)
+      return <ArrowUpDown size={14} className="text-gray-300" />;
+    return sortDirection === "asc" ? (
+      <ArrowUp size={14} className="text-blue-600" />
+    ) : (
+      <ArrowDown size={14} className="text-blue-600" />
+    );
+  };
+
+  const filteredAndSortedPages = useMemo(() => {
+    let result = [...pages];
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (page) =>
+          page.title.toLowerCase().includes(q) ||
+          page.slug.toLowerCase().includes(q),
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+      if (sortField === "title") {
+        comparison = a.title.localeCompare(b.title);
+      } else if (sortField === "createdAt") {
+        comparison =
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      } else if (sortField === "updatedAt") {
+        comparison =
+          new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+
+    return result;
+  }, [pages, searchQuery, sortField, sortDirection]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -55,69 +120,170 @@ export const PageList: React.FC = () => {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? (
-          <div className="col-span-full py-10 text-center text-gray-500">
-            Loading pages...
-          </div>
-        ) : (
-          pages.map((page) => (
-            <div
-              key={page.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-            >
-              <div className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0 pr-4">
-                    <h3 className="text-lg font-bold text-gray-900 truncate">
-                      {page.title}
-                    </h3>
-                    <div className="flex items-center text-sm text-gray-500 mt-1">
-                      <Globe size={14} className="mr-1 flex-shrink-0" />
-                      <span className="font-mono truncate">/{page.slug}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end space-y-2">
-                    <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
-                      {page.sections?.length || 0} Sections
-                    </span>
-                    <Badge variant={page.isIndexable ? "success" : "warning"}>
-                      {page.isIndexable ? "INDEXABLE" : "NO-INDEX"}
-                    </Badge>
-                  </div>
-                </div>
+      {/* Search Bar */}
+      <div className="relative">
+        <Search
+          size={18}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+        />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search pages by name or slug..."
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-all"
+        />
+      </div>
 
-                <div className="mt-4 space-y-2">
-                  <div className="text-xs text-gray-400 uppercase font-semibold tracking-wider">
-                    Metadata
-                  </div>
-                  <div className="text-sm text-gray-600 line-clamp-2 min-h-[40px]">
-                    {JSON.stringify(page.metadata || {})}
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-100">
-                <span className="text-[10px] text-gray-400 font-medium">
-                  Updated {new Date(page.updatedAt).toLocaleDateString()}
-                </span>
-                <div className="flex space-x-1">
-                  <Link to={`/pages/edit/${page.id}`}>
-                    <button className="text-gray-400 hover:text-blue-600 transition-colors p-2 hover:bg-blue-50 rounded-lg">
-                      <Edit2 size={16} />
-                    </button>
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(page.id)}
-                    className="text-gray-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg"
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-12">
+                  #
+                </th>
+                <th
+                  className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                  onClick={() => handleSort("title")}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    Page Title <SortIcon field="title" />
+                  </span>
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Slug
+                </th>
+                <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Sections
+                </th>
+                <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Indexable
+                </th>
+                <th
+                  className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                  onClick={() => handleSort("createdAt")}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    Date Created <SortIcon field="createdAt" />
+                  </span>
+                </th>
+                <th
+                  className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                  onClick={() => handleSort("updatedAt")}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    Last Updated <SortIcon field="updatedAt" />
+                  </span>
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Updated By
+                </th>
+                <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="py-12 text-center text-gray-400 text-sm"
                   >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
+                    Loading pages...
+                  </td>
+                </tr>
+              ) : filteredAndSortedPages.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="py-12 text-center text-gray-400 text-sm"
+                  >
+                    {searchQuery
+                      ? "No pages match your search."
+                      : "No pages found. Create one to get started."}
+                  </td>
+                </tr>
+              ) : (
+                filteredAndSortedPages.map((page, index) => (
+                  <tr
+                    key={page.id}
+                    className="hover:bg-blue-50/40 transition-colors group"
+                  >
+                    <td className="px-4 py-3 text-gray-400 font-mono text-xs">
+                      {index + 1}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        to={`/pages/edit/${page.id}`}
+                        className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                      >
+                        {page.title}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center text-gray-500">
+                        <Globe
+                          size={13}
+                          className="mr-1.5 flex-shrink-0 text-gray-400"
+                        />
+                        <span className="font-mono text-xs truncate max-w-[200px]">
+                          /{page.slug}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                        {page.sections?.length || 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Badge
+                        variant={page.isIndexable ? "success" : "warning"}
+                      >
+                        {page.isIndexable ? "YES" : "NO"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {new Date(page.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {new Date(page.updatedAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 text-xs font-medium">
+                      {page.updatedBy || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end space-x-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <Link to={`/pages/edit/${page.id}`}>
+                          <button className="text-gray-400 hover:text-blue-600 transition-colors p-1.5 hover:bg-blue-50 rounded-lg">
+                            <Edit2 size={15} />
+                          </button>
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(page.id)}
+                          className="text-gray-400 hover:text-red-600 transition-colors p-1.5 hover:bg-red-50 rounded-lg"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
