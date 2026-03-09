@@ -33,12 +33,15 @@ export interface SectionDto extends CreateSectionDto {
   updatedAt: string;
 }
 
+export type PageStatus = "draft" | "published";
+
 export interface CreatePageDto {
   title: string;
   slug: string;
   sections?: SectionDto[];
   metadata?: Record<string, unknown>;
   isIndexable?: boolean;
+  status?: PageStatus;
 }
 
 export interface PageDto extends CreatePageDto {
@@ -98,7 +101,8 @@ export interface ContactDto extends CreateContactDto {
   createdAt: string;
   updatedAt: string;
 }
-// Portfolio Types
+export type PortfolioStatus = "draft" | "published";
+
 export interface CreatePortfolioDto {
   title: string;
   slug: string;
@@ -107,12 +111,14 @@ export interface CreatePortfolioDto {
   isIndexable?: boolean;
   sections: (CreateSectionDto & { id?: string })[];
   metadata?: Record<string, unknown>;
+  status?: PortfolioStatus;
 }
 
 export interface PortfolioDto extends CreatePortfolioDto {
   id: string;
   createdAt: string;
   updatedAt: string;
+  updatedBy?: string;
   sections: SectionDto[];
 }
 

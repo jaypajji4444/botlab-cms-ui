@@ -37,6 +37,7 @@ const portfolioSchema = z.object({
   isIndexable: z.boolean().optional(),
   sections: z.array(sectionInstanceSchema),
   metadata: z.any().optional(),
+  status: z.enum(['draft', 'published']).optional(),
 });
 
 type PortfolioFormValues = z.infer<typeof portfolioSchema>;
@@ -62,6 +63,7 @@ export const PortfolioEditor: React.FC = () => {
       isIndexable: true,
       sections: [],
       metadata: {},
+      status: 'draft',
     }
   });
 
@@ -84,6 +86,7 @@ export const PortfolioEditor: React.FC = () => {
             location: data.location,
             isIndexable: data.isIndexable ?? true,
             sections: data.sections || [],
+            status: (data as any).status || 'draft',
           });
           const meta = data.metadata || {} as any;
           setSeoTitle(meta.SEOTitle || '');
@@ -214,6 +217,17 @@ export const PortfolioEditor: React.FC = () => {
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Location</label>
                 <input {...register('location')} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Status</label>
+              <select
+                {...register('status')}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 font-semibold"
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
             </div>
 
             <div className="pt-2">

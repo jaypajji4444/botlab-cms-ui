@@ -3,6 +3,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   Edit2,
+  Filter,
   Globe,
   Plus,
   Search,
@@ -25,6 +26,11 @@ export const PageList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("updatedAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [authorFilter, setAuthorFilter] = useState<string>("all");
+  const [indexFilter, setIndexFilter] = useState<string>("all");
 
   const fetchPages = async () => {
     setLoading(true);
@@ -72,6 +78,14 @@ export const PageList: React.FC = () => {
     );
   };
 
+  // Unique authors for filter dropdown
+  const uniqueAuthors = useMemo(() => {
+    const authors = pages
+      .map((p) => p.updatedBy || "")
+      .filter((a) => a.length > 0);
+    return [...new Set(authors)];
+  }, [pages]);
+
   const filteredAndSortedPages = useMemo(() => {
     let result = [...pages];
 
@@ -82,6 +96,26 @@ export const PageList: React.FC = () => {
         (page) =>
           page.title.toLowerCase().includes(q) ||
           page.slug.toLowerCase().includes(q),
+      );
+    }
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      result = result.filter(
+        (page) => (page.status || "draft") === statusFilter,
+      );
+    }
+
+    // Filter by author
+    if (authorFilter !== "all") {
+      result = result.filter((page) => (page.updatedBy || "") === authorFilter);
+    }
+
+    // Filter by indexable
+    if (indexFilter !== "all") {
+      const isIndexable = indexFilter === "indexed";
+      result = result.filter(
+        (page) => (page.isIndexable ?? true) === isIndexable,
       );
     }
 
@@ -101,7 +135,19 @@ export const PageList: React.FC = () => {
     });
 
     return result;
-  }, [pages, searchQuery, sortField, sortDirection]);
+  }, [
+    pages,
+    searchQuery,
+    sortField,
+    sortDirection,
+    statusFilter,
+    authorFilter,
+    indexFilter,
+  ]);
+
+  const activeFilterCount = [statusFilter, authorFilter, indexFilter].filter(
+    (f) => f !== "all",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -120,19 +166,69 @@ export const PageList: React.FC = () => {
         </Link>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search
-          size={18}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-        />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search pages by name or slug..."
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-all"
-        />
+      {/* Search + Filters Row */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search
+            size={18}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search pages by name or slug..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-all"
+          />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+            <Filter size={14} />
+            Filters{activeFilterCount > 0 && ` (${activeFilterCount})`}:
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2.5 py-2 outline-none bg-white font-medium focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          >
+            <option value="all">All Status</option>
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+          </select>
+          <select
+            value={authorFilter}
+            onChange={(e) => setAuthorFilter(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2.5 py-2 outline-none bg-white font-medium focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          >
+            <option value="all">All Authors</option>
+            {uniqueAuthors.map((author) => (
+              <option key={author} value={author}>
+                {author}
+              </option>
+            ))}
+          </select>
+          <select
+            value={indexFilter}
+            onChange={(e) => setIndexFilter(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2.5 py-2 outline-none bg-white font-medium focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          >
+            <option value="all">All Index</option>
+            <option value="indexed">Indexed</option>
+            <option value="noindex">No-Index</option>
+          </select>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={() => {
+                setStatusFilter("all");
+                setAuthorFilter("all");
+                setIndexFilter("all");
+              }}
+              className="text-[10px] text-red-500 hover:text-red-700 font-bold uppercase underline cursor-pointer"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -154,6 +250,9 @@ export const PageList: React.FC = () => {
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
                   Slug
+                </th>
+                <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Status
                 </th>
                 <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
                   Sections
@@ -189,7 +288,7 @@ export const PageList: React.FC = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="py-12 text-center text-gray-400 text-sm"
                   >
                     Loading pages...
@@ -198,11 +297,14 @@ export const PageList: React.FC = () => {
               ) : filteredAndSortedPages.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="py-12 text-center text-gray-400 text-sm"
                   >
-                    {searchQuery
-                      ? "No pages match your search."
+                    {searchQuery ||
+                      statusFilter !== "all" ||
+                      authorFilter !== "all" ||
+                      indexFilter !== "all"
+                      ? "No pages match your filters."
                       : "No pages found. Create one to get started."}
                   </td>
                 </tr>
@@ -235,6 +337,19 @@ export const PageList: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">
+                      <Badge
+                        variant={
+                          (page.status || "draft") === "published"
+                            ? "success"
+                            : "neutral"
+                        }
+                      >
+                        {(page.status || "draft") === "published"
+                          ? "PUBLISHED"
+                          : "DRAFT"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-center">
                       <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
                         {page.sections?.length || 0}
                       </span>
@@ -261,7 +376,7 @@ export const PageList: React.FC = () => {
                       })}
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-xs font-medium">
-                      {page.updatedBy || '—'}
+                      {page.updatedBy || "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end space-x-1 opacity-60 group-hover:opacity-100 transition-opacity">
