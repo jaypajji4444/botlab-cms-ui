@@ -155,6 +155,7 @@ export interface CreateJobDto {
   skills: string; // Skills/Competencies
   status: JobStatus;
   isActive: boolean;
+  applicationDeadline?: string;
 }
 
 export interface JobDto extends CreateJobDto {

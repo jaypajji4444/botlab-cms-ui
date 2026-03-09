@@ -33,6 +33,7 @@ const jobSchema = z.object({
   skills: z.string().min(10, "Skills are required"),
   status: z.enum(["draft", "published", "closed"]),
   isActive: z.boolean(),
+  applicationDeadline: z.string().optional(),
 });
 
 type JobFormValues = z.infer<typeof jobSchema>;
@@ -65,6 +66,7 @@ export const JobEditor: React.FC = () => {
       skills: "",
       status: "draft",
       isActive: true,
+      applicationDeadline: "",
     },
   });
 
@@ -80,6 +82,9 @@ export const JobEditor: React.FC = () => {
               ...data,
               status: data.status || "draft",
               isActive: data.isActive ?? true,
+              applicationDeadline: data.applicationDeadline
+                ? new Date(data.applicationDeadline).toISOString().split("T")[0]
+                : "",
             });
           }
         })
@@ -311,9 +316,24 @@ export const JobEditor: React.FC = () => {
                   className="w-full border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
                 >
                   <option value="Full Time">Full Time</option>
+                  <option value="Part Time">Part Time</option>
                   <option value="Contract">Contract</option>
                   <option value="Internship">Internship</option>
+                  <option value="Freelance">Freelance</option>
                 </select>
+              </div>
+
+              <div className="h-px bg-gray-100 my-2"></div>
+
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1.5 tracking-widest">
+                  Application Deadline
+                </label>
+                <input
+                  type="date"
+                  {...register("applicationDeadline")}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                />
               </div>
 
               <div className="h-px bg-gray-100 my-2"></div>
