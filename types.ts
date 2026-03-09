@@ -88,6 +88,12 @@ export interface CreateBlogDto {
   tableOfContent?: TableOfContentDto[];
 }
 
+export interface BlogDto extends CreateBlogDto {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CreateContactDto {
   firstName: string;
   lastName: string;
