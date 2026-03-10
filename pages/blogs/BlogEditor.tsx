@@ -14,20 +14,18 @@ import {
   UploadCloud,
 } from "lucide-react";
 import React, {
-  useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import ReactQuill from "react-quill";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { blogsApi } from "../../client/blogs";
 import { filesApi } from "../../client/files";
 import { Button } from "../../components/ui/Button";
+import { RichTextEditor } from "../../components/RichTextEditor";
 
 // Zod Schema for Blog
 const faqSchema = z.object({
@@ -62,7 +60,6 @@ type BlogFormValues = z.infer<typeof blogSchema>;
 export const BlogEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const quillRef = useRef<ReactQuill>(null);
   const previewInputRef = useRef<HTMLInputElement>(null);
   const isEditMode = !!id;
 
@@ -186,49 +183,7 @@ export const BlogEditor: React.FC = () => {
     }
   };
 
-  const imageHandler = useCallback(() => {
-    const input = document.createElement("input");
-    input.setAttribute("type", "file");
-    input.setAttribute("accept", "image/*");
-    input.click();
 
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (file) {
-        const toastId = toast.loading("Uploading editor image...");
-        try {
-          const res = await filesApi.uploadImage(file);
-          const quill = quillRef.current?.getEditor();
-          const range = quill?.getSelection();
-          if (quill && range) {
-            quill.insertEmbed(range.index, "image", res.url);
-            quill.setSelection(range.index + 1);
-          }
-          toast.success("Image inserted", { id: toastId });
-        } catch (error) {
-          toast.error("Failed to upload image", { id: toastId });
-        }
-      }
-    };
-  }, []);
-
-  const quillModules = useMemo(
-    () => ({
-      toolbar: {
-        container: [
-          [{ header: [1, 2, 3, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ list: "ordered" }, { list: "bullet" }],
-          ["link", "image", "code-block"],
-          ["clean"],
-        ],
-        handlers: {
-          image: imageHandler,
-        },
-      },
-    }),
-    [imageHandler],
-  );
 
   // Automated Content Processing: IDs and TOC
   const processBlogContent = (html: string) => {
@@ -361,13 +316,10 @@ export const BlogEditor: React.FC = () => {
                   name="content"
                   control={control}
                   render={({ field }) => (
-                    <ReactQuill
-                      ref={quillRef}
-                      theme="snow"
+                    <RichTextEditor
                       value={field.value}
                       onChange={field.onChange}
-                      modules={quillModules}
-                      placeholder="Start writing your amazing story..."
+                      enableBlogFeatures={true}
                     />
                   )}
                 />
