@@ -2,6 +2,7 @@ import {
   Briefcase,
   Building2,
   Calendar,
+  Download,
   Edit2,
   ExternalLink,
   Loader2,
@@ -61,6 +62,81 @@ export const JobList: React.FC = () => {
     } finally {
       setLoadingApps(false);
     }
+  };
+
+  const handleDownloadJobData = async (job: JobDto) => {
+    const toastId = toast.loading("Preparing download...");
+    try {
+      const apps = await careersApi.getJobApplications(job.id);
+
+      // Build CSV content
+      const lines: string[] = [];
+
+      // Job details header
+
+      lines.push(`Title,${csvEscape(job.title)}`);
+      lines.push(`Department,${csvEscape(job.department)}`);
+      lines.push(`Location,${csvEscape(job.location)}`);
+      lines.push(`Type,${csvEscape(job.type)}`);
+      lines.push(`Experience,${csvEscape(job.experience)}`);
+      lines.push(`Work Mode,${csvEscape(job.workMode || "Office")}`);
+      lines.push(`Status,${csvEscape(job.status)}`);
+      lines.push(`Deadline,${csvEscape(job.applicationDeadline || "N/A")}`);
+      lines.push(`Created,${csvEscape(new Date(job.createdAt).toLocaleDateString())}`);
+      lines.push("");
+
+      // Applicants
+      lines.push(`APPLICANTS (${apps.length})`);
+      if (apps.length > 0) {
+        lines.push(
+          ["Name", "Email", "Phone", "Current Location", "Total Exp", "Relevant Exp", "Current Employer", "Current CTC", "Expected CTC", "Notice Period", "Qualification", "Portfolio", "Resume URL", "Applied On"]
+            .map(csvEscape)
+            .join(",")
+        );
+        apps.forEach((app) => {
+          lines.push(
+            [
+              app.name,
+              app.email,
+              app.mobileNumber,
+              app.currentLocation,
+              app.totalExperience,
+              app.relevantExperience,
+              app.currentEmployer || "",
+              app.currentCtc || "",
+              app.expectedCtc || "",
+              app.noticePeriod,
+              app.highestQualification,
+              app.portfolioLink || "",
+              app.resumeUrl,
+              new Date(app.createdAt).toLocaleDateString(),
+            ]
+              .map(csvEscape)
+              .join(",")
+          );
+        });
+      }
+
+      const csvContent = lines.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${job.title.replace(/[^a-z0-9]/gi, "_")}_job_data.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast.success(`Downloaded data for ${apps.length} applicant(s)`, { id: toastId });
+    } catch (error) {
+      toast.error("Could not download job data", { id: toastId });
+    }
+  };
+
+  const csvEscape = (val: string) => {
+    if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+      return `"${val.replace(/"/g, '""')}"`;
+    }
+    return val;
   };
 
   const handleDelete = async (id: string) => {
@@ -207,6 +283,13 @@ export const JobList: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end space-x-1">
+                        <button
+                          onClick={() => handleDownloadJobData(job)}
+                          className="p-2 hover:bg-green-100 rounded-lg text-gray-400 hover:text-green-600 transition-all"
+                          title="Download job data with applicants"
+                        >
+                          <Download size={16} />
+                        </button>
                         <Link to={`/careers/edit/${job.id}`}>
                           <button className="p-2 hover:bg-blue-100 rounded-lg text-gray-400 hover:text-blue-600 transition-all">
                             <Edit2 size={16} />
