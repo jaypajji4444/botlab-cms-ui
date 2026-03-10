@@ -217,7 +217,17 @@ export const PortfolioEditor: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Category</label>
-                <input {...register('category')} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                <select {...register('category')} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium">
+                  <option value="Pyro">Pyro</option>
+                  <option value="Integrated">Integrated</option>
+                  <option value="Indoor">Indoor</option>
+                  <option value="Outdoor">Outdoor</option>
+                  <option value="Corporate">Corporate</option>
+                  <option value="Wedding">Wedding</option>
+                  <option value="Festival">Festival</option>
+                  <option value="Government">Government</option>
+                  <option value="Sports">Sports</option>
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Location</label>

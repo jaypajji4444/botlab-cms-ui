@@ -16,6 +16,7 @@ export const PortfolioList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [authorFilter, setAuthorFilter] = useState<string>('all');
   const [indexFilter, setIndexFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   const fetchPortfolios = async () => {
     setLoading(true);
@@ -72,10 +73,14 @@ export const PortfolioList: React.FC = () => {
       result = result.filter(p => (p.isIndexable ?? true) === isIndexable);
     }
 
-    return result;
-  }, [portfolios, search, statusFilter, authorFilter, indexFilter]);
+    if (categoryFilter !== 'all') {
+      result = result.filter(p => (p.category || '') === categoryFilter);
+    }
 
-  const activeFilterCount = [statusFilter, authorFilter, indexFilter].filter(f => f !== 'all').length;
+    return result;
+  }, [portfolios, search, statusFilter, authorFilter, indexFilter, categoryFilter]);
+
+  const activeFilterCount = [statusFilter, authorFilter, indexFilter, categoryFilter].filter(f => f !== 'all').length;
 
   return (
     <div className="space-y-6">
@@ -137,9 +142,25 @@ export const PortfolioList: React.FC = () => {
             <option value="indexed">Indexed</option>
             <option value="noindex">No-Index</option>
           </select>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2.5 py-2 outline-none bg-white font-medium focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          >
+            <option value="all">All Categories</option>
+            <option value="Pyro">Pyro</option>
+            <option value="Integrated">Integrated</option>
+            <option value="Indoor">Indoor</option>
+            <option value="Outdoor">Outdoor</option>
+            <option value="Corporate">Corporate</option>
+            <option value="Wedding">Wedding</option>
+            <option value="Festival">Festival</option>
+            <option value="Government">Government</option>
+            <option value="Sports">Sports</option>
+          </select>
           {activeFilterCount > 0 && (
             <button
-              onClick={() => { setStatusFilter('all'); setAuthorFilter('all'); setIndexFilter('all'); }}
+              onClick={() => { setStatusFilter('all'); setAuthorFilter('all'); setIndexFilter('all'); setCategoryFilter('all'); }}
               className="text-[10px] text-red-500 hover:text-red-700 font-bold uppercase underline cursor-pointer"
             >
               Clear
