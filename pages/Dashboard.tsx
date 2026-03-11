@@ -4,7 +4,7 @@ import { sectionsApi } from "../client/sections";
 import { blogsApi } from "../client/blogs";
 import { portfoliosApi } from "../client/portfolios";
 import { careersApi } from "../client/careers";
-import { contactsApi } from "../client/contacts";
+import { leadsApi } from "../client/leads";
 import { caseStudiesApi } from "../client/caseStudies";
 import { reportsApi } from "../client/reports";
 import {
@@ -94,7 +94,7 @@ interface DashboardStats {
   blogs: number;
   portfolios: number;
   jobs: number;
-  contacts: number;
+  leads: number;
   caseStudies: number;
   reports: number;
 }
@@ -106,7 +106,7 @@ export const Dashboard: React.FC = () => {
     blogs: 0,
     portfolios: 0,
     jobs: 0,
-    contacts: 0,
+    leads: 0,
     caseStudies: 0,
     reports: 0,
   });
@@ -120,7 +120,7 @@ export const Dashboard: React.FC = () => {
       blogsApi.getAll(),
       portfoliosApi.getAll(),
       careersApi.getAllJobs(),
-      contactsApi.getAll(),
+      leadsApi.getAll(),
       caseStudiesApi.getAllAdmin(),
       reportsApi.getAll(),
     ])
@@ -131,7 +131,7 @@ export const Dashboard: React.FC = () => {
           blogs,
           portfolios,
           jobs,
-          contacts,
+          leads,
           caseStudies,
           reports,
         ]) => {
@@ -141,7 +141,7 @@ export const Dashboard: React.FC = () => {
             blogs: blogs.length,
             portfolios: portfolios.length,
             jobs: jobs.length,
-            contacts: contacts.length,
+            leads: leads.length,
             caseStudies: caseStudies.length,
             reports: reports.length,
           });
@@ -215,12 +215,12 @@ export const Dashboard: React.FC = () => {
       link: "/reports",
     },
     {
-      label: "Contacts",
-      count: stats.contacts,
+      label: "Leads",
+      count: stats.leads,
       icon: <Mail size={24} />,
       bgColor: "bg-pink-50",
       textColor: "text-pink-600",
-      link: "/contacts",
+      link: "/leads",
     },
   ];
 

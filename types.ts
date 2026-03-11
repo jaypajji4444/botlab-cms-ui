@@ -107,6 +107,23 @@ export interface ContactDto extends CreateContactDto {
   createdAt: string;
   updatedAt: string;
 }
+
+// Lead Types (Contact + UTM tracking)
+export interface CreateLeadDto {
+  firstName: string;
+  lastName: string;
+  email: string;
+  mobileNumber: string;
+  message?: string;
+  utmRaw?: string;
+  pageUrl?: string;
+}
+
+export interface LeadDto extends CreateLeadDto {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export type PortfolioStatus = "draft" | "published";
 
 export interface CreatePortfolioDto {

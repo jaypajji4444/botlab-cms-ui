@@ -25,7 +25,7 @@ export const Layout: React.FC = () => {
     { label: "Pages", path: "/pages", icon: <FileText size={20} /> },
     { label: "Blogs", path: "/blogs", icon: <BookOpen size={20} /> },
     { label: "Sections", path: "/sections", icon: <Layers size={20} /> },
-    { label: "Contacts", path: "/contacts", icon: <Mail size={20} /> },
+    { label: "Leads", path: "/leads", icon: <Mail size={20} /> },
     { label: "Portfolios", path: "/portfolios", icon: <Briefcase size={20} /> },
     { label: "Reports", path: "/reports", icon: <FileText size={20} /> },
     { label: "Careers", path: "/careers", icon: <Zap size={20} /> },
@@ -68,10 +68,9 @@ export const Layout: React.FC = () => {
               to={item.path}
               className={({ isActive }) => `
                 flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors
-                ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                ${isActive
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
                 }
               `}
             >
