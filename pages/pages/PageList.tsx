@@ -2,6 +2,7 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Copy,
   Edit2,
   Filter,
   Globe,
@@ -11,7 +12,7 @@ import {
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { pagesApi } from "../../client/pages";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -21,6 +22,7 @@ type SortField = "title" | "createdAt" | "updatedAt";
 type SortDirection = "asc" | "desc";
 
 export const PageList: React.FC = () => {
+  const navigate = useNavigate();
   const [pages, setPages] = useState<PageDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,6 +58,25 @@ export const PageList: React.FC = () => {
       toast.success("Page deleted");
     } catch (error) {
       toast.error("Could not delete page");
+    }
+  };
+
+  const handleDuplicate = async (page: PageDto) => {
+    const toastId = toast.loading("Duplicating page...");
+    try {
+      const fullPage = await pagesApi.getById(page.id);
+      const newPage = await pagesApi.create({
+        title: `${fullPage.title} (Copy)`,
+        slug: `${fullPage.slug}-copy`,
+        sections: fullPage.sections,
+        metadata: fullPage.metadata,
+        isIndexable: false,
+        status: "draft",
+      });
+      toast.success("Page duplicated!", { id: toastId });
+      navigate(`/pages/edit/${newPage.id}`);
+    } catch (error) {
+      toast.error("Could not duplicate page", { id: toastId });
     }
   };
 
@@ -380,6 +401,13 @@ export const PageList: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end space-x-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleDuplicate(page)}
+                          className="text-gray-400 hover:text-green-600 transition-colors p-1.5 hover:bg-green-50 rounded-lg"
+                          title="Duplicate page"
+                        >
+                          <Copy size={15} />
+                        </button>
                         <Link to={`/pages/edit/${page.id}`}>
                           <button className="text-gray-400 hover:text-blue-600 transition-colors p-1.5 hover:bg-blue-50 rounded-lg">
                             <Edit2 size={15} />
