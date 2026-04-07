@@ -13,19 +13,15 @@ import {
   Trash2,
   UploadCloud,
 } from "lucide-react";
-import React, {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { blogsApi } from "../../client/blogs";
 import { filesApi } from "../../client/files";
-import { Button } from "../../components/ui/Button";
 import { RichTextEditor } from "../../components/RichTextEditor";
+import { Button } from "../../components/ui/Button";
 
 // Zod Schema for Blog
 const faqSchema = z.object({
@@ -149,7 +145,7 @@ export const BlogEditor: React.FC = () => {
               faqs: data.faqs || [],
               tableOfContent: data.tableOfContent || [],
             });
-            const meta = data.metadata || {} as any;
+            const meta = data.metadata || ({} as any);
             setSeoTitle(meta.SEOTitle || "");
             setSeoDescription(meta.Desc || "");
             const { SEOTitle, Desc, ...restMeta } = meta;
@@ -182,8 +178,6 @@ export const BlogEditor: React.FC = () => {
       if (previewInputRef.current) previewInputRef.current.value = "";
     }
   };
-
-
 
   // Automated Content Processing: IDs and TOC
   const processBlogContent = (html: string) => {
@@ -539,7 +533,7 @@ export const BlogEditor: React.FC = () => {
                   </label>
                   <div className="flex items-center">
                     <span className="bg-gray-100 border border-r-0 border-gray-300 rounded-l-md px-3 py-2 text-gray-400 text-xs font-mono">
-                      /blog/
+                      /blogs/
                     </span>
                     <input
                       {...register("slug")}

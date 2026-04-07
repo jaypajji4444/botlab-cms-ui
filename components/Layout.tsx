@@ -8,6 +8,7 @@ import {
   Mail,
   Menu,
   Settings,
+  Users,
   X,
   Zap,
 } from "lucide-react";
@@ -34,6 +35,7 @@ export const Layout: React.FC = () => {
       path: "/case-studies",
       icon: <Briefcase size={20} />,
     },
+    { label: "Users", path: "/users", icon: <Users size={20} /> },
   ];
 
   return (
@@ -68,9 +70,10 @@ export const Layout: React.FC = () => {
               to={item.path}
               className={({ isActive }) => `
                 flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors
-                ${isActive
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
                 }
               `}
             >

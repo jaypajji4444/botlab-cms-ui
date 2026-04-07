@@ -9,8 +9,8 @@ import { JobEditor } from "./pages/careers/JobEditor";
 import { JobList } from "./pages/careers/JobList";
 import { CaseStudyEditor } from "./pages/caseStudies/CaseStudyEditor";
 import { CaseStudyList } from "./pages/caseStudies/CaseStudyList";
-import { LeadList } from "./pages/leads/LeadList";
 import { Dashboard } from "./pages/Dashboard";
+import { LeadList } from "./pages/leads/LeadList";
 import { Login } from "./pages/Login";
 import { PageEditor } from "./pages/pages/PageEditor";
 import { PageList } from "./pages/pages/PageList";
@@ -20,6 +20,8 @@ import { ReportEditor } from "./pages/reports/ReportEditor";
 import { ReportList } from "./pages/reports/ReportList";
 import { SectionEditor } from "./pages/sections/SectionEditor";
 import { SectionList } from "./pages/sections/SectionList";
+import { RegisterUser } from "./pages/users/RegisterUser";
+import { UserList } from "./pages/users/UserList";
 
 // Guard Component to protect routes
 const ProtectedRoute = () => {
@@ -75,6 +77,9 @@ const AppRoutes: React.FC = () => {
           <Route path="case-studies/edit/:id" element={<CaseStudyEditor />} />
 
           <Route path="leads" element={<LeadList />} />
+
+          <Route path="users" element={<UserList />} />
+          <Route path="users/register" element={<RegisterUser />} />
         </Route>
       </Route>
     </Routes>

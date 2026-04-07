@@ -117,6 +117,10 @@ export interface CreateLeadDto {
   message?: string;
   utmRaw?: string;
   pageUrl?: string;
+  eventType?: string;
+  eventName?: string;
+  companyName?: string;
+  eventDate?: string;
 }
 
 export interface LeadDto extends CreateLeadDto {
@@ -147,7 +151,7 @@ export interface PortfolioDto extends CreatePortfolioDto {
   sections: SectionDto[];
 }
 
-export interface ResolvedPortfolioDto extends PortfolioDto { }
+export interface ResolvedPortfolioDto extends PortfolioDto {}
 
 export interface CreateReportDto {
   title: string;
@@ -223,6 +227,23 @@ export interface CreateCaseStudyDto {
 
 export interface CaseStudyDto extends CreateCaseStudyDto {
   id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// User Types
+export interface CreateUserDto {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface UserDto {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
   createdAt: string;
   updatedAt: string;
 }
