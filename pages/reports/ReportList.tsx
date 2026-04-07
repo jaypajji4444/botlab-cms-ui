@@ -89,9 +89,7 @@ export const ReportList: React.FC = () => {
   }, [reports]);
 
   const uniqueYears = useMemo(() => {
-    const years = reports
-      .map((r) => r.year || "")
-      .filter((y) => y.length > 0);
+    const years = reports.map((r) => r.year || "").filter((y) => y.length > 0);
     return [...new Set(years)].sort().reverse();
   }, [reports]);
 
@@ -134,8 +132,7 @@ export const ReportList: React.FC = () => {
       } else if (sortField === "year") {
         comparison = a.year.localeCompare(b.year);
       } else if (sortField === "date") {
-        comparison =
-          new Date(a.date).getTime() - new Date(b.date).getTime();
+        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
       } else if (sortField === "updatedAt") {
         comparison =
           new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
@@ -144,7 +141,15 @@ export const ReportList: React.FC = () => {
     });
 
     return result;
-  }, [reports, search, sortField, sortDirection, categoryFilter, yearFilter, authorFilter]);
+  }, [
+    reports,
+    search,
+    sortField,
+    sortDirection,
+    categoryFilter,
+    yearFilter,
+    authorFilter,
+  ]);
 
   const activeFilterCount = [categoryFilter, yearFilter, authorFilter].filter(
     (f) => f !== "all",

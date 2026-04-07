@@ -83,9 +83,7 @@ export const BlogList: React.FC = () => {
   };
 
   const uniqueCategories = useMemo(() => {
-    const cats = blogs
-      .map((b) => b.category || "")
-      .filter((c) => c.length > 0);
+    const cats = blogs.map((b) => b.category || "").filter((c) => c.length > 0);
     return [...new Set(cats)];
   }, [blogs]);
 
@@ -141,11 +139,23 @@ export const BlogList: React.FC = () => {
     });
 
     return result;
-  }, [blogs, search, sortField, sortDirection, statusFilter, categoryFilter, authorFilter, indexFilter]);
+  }, [
+    blogs,
+    search,
+    sortField,
+    sortDirection,
+    statusFilter,
+    categoryFilter,
+    authorFilter,
+    indexFilter,
+  ]);
 
-  const activeFilterCount = [statusFilter, categoryFilter, authorFilter, indexFilter].filter(
-    (f) => f !== "all",
-  ).length;
+  const activeFilterCount = [
+    statusFilter,
+    categoryFilter,
+    authorFilter,
+    indexFilter,
+  ].filter((f) => f !== "all").length;
 
   return (
     <div className="space-y-6">
