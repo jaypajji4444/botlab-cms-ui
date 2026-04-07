@@ -322,9 +322,9 @@ export const PageList: React.FC = () => {
                     className="py-12 text-center text-gray-400 text-sm"
                   >
                     {searchQuery ||
-                      statusFilter !== "all" ||
-                      authorFilter !== "all" ||
-                      indexFilter !== "all"
+                    statusFilter !== "all" ||
+                    authorFilter !== "all" ||
+                    indexFilter !== "all"
                       ? "No pages match your filters."
                       : "No pages found. Create one to get started."}
                   </td>
@@ -347,15 +347,20 @@ export const PageList: React.FC = () => {
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center text-gray-500">
+                      <a
+                        href={`${(import.meta as any).env?.VITE_SITE_URL || "https://botlab-rho.vercel.app"}/${page.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-gray-500 hover:text-blue-600 transition-colors"
+                      >
                         <Globe
                           size={13}
                           className="mr-1.5 flex-shrink-0 text-gray-400"
                         />
-                        <span className="font-mono text-xs truncate max-w-[200px]">
+                        <span className="font-mono text-xs truncate max-w-[200px] hover:underline">
                           /{page.slug}
                         </span>
-                      </div>
+                      </a>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Badge
@@ -376,9 +381,7 @@ export const PageList: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <Badge
-                        variant={page.isIndexable ? "success" : "warning"}
-                      >
+                      <Badge variant={page.isIndexable ? "success" : "warning"}>
                         {page.isIndexable ? "YES" : "NO"}
                       </Badge>
                     </td>

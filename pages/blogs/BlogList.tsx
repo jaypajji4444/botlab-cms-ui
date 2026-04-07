@@ -345,9 +345,14 @@ export const BlogList: React.FC = () => {
                         >
                           {blog.title}
                         </Link>
-                        <div className="text-[10px] text-gray-400 font-mono mt-0.5 tracking-tight truncate italic">
+                        <a
+                          href={`${(import.meta as any).env?.VITE_SITE_URL || "https://botlab-rho.vercel.app"}/blogs/${blog.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-gray-400 font-mono mt-0.5 tracking-tight truncate italic hover:text-blue-600 hover:underline transition-colors"
+                        >
                           /blogs/{blog.slug}
-                        </div>
+                        </a>
                       </div>
                     </td>
                     <td className="px-6 py-4">

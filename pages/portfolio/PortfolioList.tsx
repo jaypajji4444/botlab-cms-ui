@@ -297,10 +297,15 @@ export const PortfolioList: React.FC = () => {
                         >
                           {item.title}
                         </Link>
-                        <div className="text-[10px] text-gray-400 font-mono mt-0.5 tracking-tight flex items-center italic">
+                        <a
+                          href={`${(import.meta as any).env?.VITE_SITE_URL || "https://botlab-rho.vercel.app"}/portfolio/${item.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-gray-400 font-mono mt-0.5 tracking-tight flex items-center italic hover:text-blue-600 hover:underline transition-colors"
+                        >
                           <span className="opacity-50 mr-1">URL:</span>{" "}
                           /portfolio/{item.slug}
-                        </div>
+                        </a>
                       </div>
                     </td>
                     <td className="px-6 py-4">
