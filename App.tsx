@@ -10,6 +10,8 @@ import { JobList } from "./pages/careers/JobList";
 import { CaseStudyEditor } from "./pages/caseStudies/CaseStudyEditor";
 import { CaseStudyList } from "./pages/caseStudies/CaseStudyList";
 import { Dashboard } from "./pages/Dashboard";
+import { LayoutEditor } from "./pages/layouts/LayoutEditor";
+import { LayoutList } from "./pages/layouts/LayoutList";
 import { LeadList } from "./pages/leads/LeadList";
 import { Login } from "./pages/Login";
 import { PageEditor } from "./pages/pages/PageEditor";
@@ -80,6 +82,26 @@ const AppRoutes: React.FC = () => {
 
           <Route path="users" element={<UserList />} />
           <Route path="users/register" element={<RegisterUser />} />
+
+          <Route path="header" element={<LayoutList type="header" />} />
+          <Route
+            path="header/create"
+            element={<LayoutEditor type="header" />}
+          />
+          <Route
+            path="header/edit/:id"
+            element={<LayoutEditor type="header" />}
+          />
+
+          <Route path="footer" element={<LayoutList type="footer" />} />
+          <Route
+            path="footer/create"
+            element={<LayoutEditor type="footer" />}
+          />
+          <Route
+            path="footer/edit/:id"
+            element={<LayoutEditor type="footer" />}
+          />
         </Route>
       </Route>
     </Routes>

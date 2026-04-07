@@ -1,16 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { blogsApi } from '../../client/blogs';
-import { BlogDto } from '../../types';
-import { Link } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Search, Calendar, Tag, Image as ImageIcon, Globe, Loader2 } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { toast } from 'react-hot-toast';
+import {
+  Edit2,
+  Image as ImageIcon,
+  Loader2,
+  Plus,
+  Search,
+  Tag,
+  Trash2,
+} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { Link } from "react-router-dom";
+import { blogsApi } from "../../client/blogs";
+import { Badge } from "../../components/ui/Badge";
+import { Button } from "../../components/ui/Button";
+import { BlogDto } from "../../types";
 
 export const BlogList: React.FC = () => {
   const [blogs, setBlogs] = useState<BlogDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   const fetchBlogs = async () => {
     setLoading(true);
@@ -18,7 +26,7 @@ export const BlogList: React.FC = () => {
       const data = await blogsApi.getAll();
       setBlogs(data);
     } catch (err) {
-      toast.error('Failed to load blogs');
+      toast.error("Failed to load blogs");
     } finally {
       setLoading(false);
     }
@@ -29,20 +37,22 @@ export const BlogList: React.FC = () => {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this blog post?')) return;
+    if (!window.confirm("Are you sure you want to delete this blog post?"))
+      return;
     try {
       await blogsApi.delete(id);
-      setBlogs(blogs.filter(b => b.id !== id));
-      toast.success('Blog post deleted');
+      setBlogs(blogs.filter((b) => b.id !== id));
+      toast.success("Blog post deleted");
     } catch (error) {
-      toast.error('Could not delete blog post');
+      toast.error("Could not delete blog post");
     }
   };
 
-  const filteredBlogs = blogs.filter(b =>
-    b.title.toLowerCase().includes(search.toLowerCase()) ||
-    b.slug.toLowerCase().includes(search.toLowerCase()) ||
-    (b.category || '').toLowerCase().includes(search.toLowerCase())
+  const filteredBlogs = blogs.filter(
+    (b) =>
+      b.title.toLowerCase().includes(search.toLowerCase()) ||
+      b.slug.toLowerCase().includes(search.toLowerCase()) ||
+      (b.category || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -50,7 +60,9 @@ export const BlogList: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Blog Posts</h1>
-          <p className="text-gray-500">Manage your stories, news, and technical articles.</p>
+          <p className="text-gray-500">
+            Manage your stories, news, and technical articles.
+          </p>
         </div>
         <Link to="/blogs/create">
           <Button>
@@ -63,7 +75,10 @@ export const BlogList: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-200 bg-gray-50/50">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={20}
+            />
             <input
               type="text"
               placeholder="Search by title, slug, or category..."
@@ -91,22 +106,41 @@ export const BlogList: React.FC = () => {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
-                    <Loader2 className="animate-spin mx-auto text-blue-500 mb-2" size={24} />
-                    <span className="text-gray-500 text-sm">Loading blogs...</span>
+                    <Loader2
+                      className="animate-spin mx-auto text-blue-500 mb-2"
+                      size={24}
+                    />
+                    <span className="text-gray-500 text-sm">
+                      Loading blogs...
+                    </span>
                   </td>
                 </tr>
               ) : filteredBlogs.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-500 text-sm font-medium">No blog posts found.</td></tr>
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-6 py-12 text-center text-gray-500 text-sm font-medium"
+                  >
+                    No blog posts found.
+                  </td>
+                </tr>
               ) : (
                 filteredBlogs.map((blog, index) => (
-                  <tr key={blog.id} className="hover:bg-blue-50/30 transition-colors group">
+                  <tr
+                    key={blog.id}
+                    className="hover:bg-blue-50/30 transition-colors group"
+                  >
                     <td className="px-6 py-4 text-gray-400 font-mono text-xs">
                       {index + 1}
                     </td>
                     <td className="px-6 py-4">
                       <div className="h-12 w-20 rounded-md bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
                         {blog.preview ? (
-                          <img src={blog.preview} alt="" className="h-full w-full object-cover" />
+                          <img
+                            src={blog.preview}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
                           <ImageIcon size={16} className="text-gray-300" />
                         )}
@@ -114,26 +148,35 @@ export const BlogList: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="max-w-xs">
-                        <Link to={`/blogs/edit/${blog.id}`} className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate block">
+                        <Link
+                          to={`/blogs/edit/${blog.id}`}
+                          className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate block"
+                        >
                           {blog.title}
                         </Link>
-                        <div className="text-[10px] text-gray-400 font-mono mt-0.5 tracking-tight truncate italic">/blog/{blog.slug}</div>
+                        <div className="text-[10px] text-gray-400 font-mono mt-0.5 tracking-tight truncate italic">
+                          /blogs/{blog.slug}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center text-xs text-gray-600">
                         <Tag size={12} className="mr-1.5 text-blue-400" />
-                        {blog.category || 'Uncategorized'}
+                        {blog.category || "Uncategorized"}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant={blog.status === 'published' ? 'success' : 'neutral'}>
+                      <Badge
+                        variant={
+                          blog.status === "published" ? "success" : "neutral"
+                        }
+                      >
                         {blog.status.toUpperCase()}
                       </Badge>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant={blog.isIndexable ? 'success' : 'warning'}>
-                        {blog.isIndexable ? 'INDEXABLE' : 'NO-INDEX'}
+                      <Badge variant={blog.isIndexable ? "success" : "warning"}>
+                        {blog.isIndexable ? "INDEXABLE" : "NO-INDEX"}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-right">

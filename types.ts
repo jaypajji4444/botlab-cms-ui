@@ -247,3 +247,20 @@ export interface UserDto {
   createdAt: string;
   updatedAt: string;
 }
+
+// Layout Types (Header / Footer)
+export type LayoutType = "header" | "footer";
+
+export interface CreateLayoutDto {
+  name: string;
+  slug: string;
+  type: LayoutType;
+  isActive?: boolean;
+  components: ComponentDto[];
+}
+
+export interface LayoutDto extends CreateLayoutDto {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}

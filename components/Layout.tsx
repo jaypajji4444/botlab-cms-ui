@@ -7,6 +7,8 @@ import {
   LogOut,
   Mail,
   Menu,
+  PanelBottom,
+  PanelTop,
   Settings,
   Users,
   X,
@@ -36,6 +38,8 @@ export const Layout: React.FC = () => {
       icon: <Briefcase size={20} />,
     },
     { label: "Users", path: "/users", icon: <Users size={20} /> },
+    { label: "Header", path: "/header", icon: <PanelTop size={20} /> },
+    { label: "Footer", path: "/footer", icon: <PanelBottom size={20} /> },
   ];
 
   return (
