@@ -92,6 +92,7 @@ export interface BlogDto extends CreateBlogDto {
   id: string;
   createdAt: string;
   updatedAt: string;
+  updatedBy?: string;
 }
 
 export interface CreateContactDto {
@@ -165,6 +166,7 @@ export interface ReportDto extends CreateReportDto {
   id: string;
   createdAt: string;
   updatedAt: string;
+  updatedBy?: string;
 }
 
 export type JobStatus = "draft" | "published" | "closed";
