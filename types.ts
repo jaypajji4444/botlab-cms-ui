@@ -119,7 +119,7 @@ export interface CreateLeadDto {
   utmRaw?: string;
   pageUrl?: string;
   eventType?: string;
-  eventName?: string;
+  eventLocation?: string;
   companyName?: string;
   eventDate?: string;
 }

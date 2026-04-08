@@ -55,7 +55,7 @@ export const LeadList: React.FC = () => {
       const fullName = `${l.firstName || ""} ${l.lastName || ""}`.toLowerCase();
       const email = (l.email || "").toLowerCase();
       const company = (l.companyName || "").toLowerCase();
-      const event = (l.eventName || "").toLowerCase();
+      const event = (l.eventLocation || "").toLowerCase();
       const searchTerm = search.toLowerCase();
       return (
         fullName.includes(searchTerm) ||
@@ -97,7 +97,7 @@ export const LeadList: React.FC = () => {
       "Phone",
       "Company",
       "Event Type",
-      "Event Name",
+      "Event Location",
       "Event Date",
       "Message",
       "UTM Data",
@@ -111,7 +111,7 @@ export const LeadList: React.FC = () => {
         l.mobileNumber || "",
         l.companyName || "",
         l.eventType || "",
-        l.eventName || "",
+        l.eventLocation || "",
         l.eventDate || "",
         l.message || "",
         l.utmRaw || "",
@@ -244,13 +244,13 @@ export const LeadList: React.FC = () => {
                             {lead.companyName}
                           </div>
                         )}
-                        {lead.eventName && (
+                        {lead.eventLocation && (
                           <div className="text-xs text-gray-600 flex items-center">
                             <Sparkles
                               size={12}
                               className="mr-1.5 text-amber-500 flex-shrink-0"
                             />
-                            {lead.eventName}
+                            {lead.eventLocation}
                           </div>
                         )}
                         {lead.eventType && (
@@ -264,7 +264,7 @@ export const LeadList: React.FC = () => {
                           </div>
                         )}
                         {!lead.companyName &&
-                          !lead.eventName &&
+                          !lead.eventLocation &&
                           !lead.eventType &&
                           !lead.eventDate && (
                             <span className="text-xs text-gray-300">—</span>
@@ -404,7 +404,7 @@ export const LeadList: React.FC = () => {
 
               {/* Event & Company Info */}
               {(selectedLead.eventType ||
-                selectedLead.eventName ||
+                selectedLead.eventLocation ||
                 selectedLead.companyName ||
                 selectedLead.eventDate) && (
                 <div className="bg-violet-50 p-4 rounded-xl border border-violet-100 space-y-3">
@@ -436,17 +436,17 @@ export const LeadList: React.FC = () => {
                         </p>
                       </div>
                     )}
-                    {selectedLead.eventName && (
+                    {selectedLead.eventLocation && (
                       <div>
                         <span className="text-[9px] font-bold text-gray-400 uppercase">
-                          Event Name
+                          Event Location
                         </span>
                         <p className="text-sm text-gray-700 font-medium flex items-center mt-0.5">
                           <Sparkles
                             size={13}
                             className="mr-1.5 text-amber-500"
                           />
-                          {selectedLead.eventName}
+                          {selectedLead.eventLocation}
                         </p>
                       </div>
                     )}
