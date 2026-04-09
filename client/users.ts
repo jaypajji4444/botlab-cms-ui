@@ -10,4 +10,7 @@ export const usersApi = {
     const response = await http.post<UserDto>("/users/register", data);
     return response.data;
   },
+  delete: async (id: string): Promise<void> => {
+    await http.delete(`/users/${id}`);
+  },
 };

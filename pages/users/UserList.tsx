@@ -5,6 +5,7 @@ import {
   Mail,
   Plus,
   Search,
+  Trash2,
   User,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -18,6 +19,7 @@ export const UserList: React.FC = () => {
   const [users, setUsers] = useState<UserDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -44,6 +46,20 @@ export const UserList: React.FC = () => {
         u.email.toLowerCase().includes(q),
     );
   }, [users, search]);
+
+  const handleDelete = async (user: UserDto) => {
+    if (!window.confirm(`Are you sure you want to delete "${user.name}"?`)) return;
+    setDeletingId(user.id);
+    try {
+      await usersApi.delete(user.id);
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+      toast.success(`User "${user.name}" deleted`);
+    } catch (err) {
+      toast.error("Failed to delete user");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const getInitials = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -92,12 +108,13 @@ export const UserList: React.FC = () => {
                 <th className="px-6 py-4">Username</th>
                 <th className="px-6 py-4">Email</th>
                 <th className="px-6 py-4">Registered At</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center">
+                  <td colSpan={6} className="px-6 py-20 text-center">
                     <Loader2
                       className="animate-spin mx-auto text-blue-500 mb-2"
                       size={32}
@@ -109,7 +126,7 @@ export const UserList: React.FC = () => {
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center">
+                  <td colSpan={6} className="px-6 py-20 text-center">
                     <Inbox
                       className="mx-auto text-gray-300 mb-2"
                       size={40}
@@ -165,6 +182,20 @@ export const UserList: React.FC = () => {
                           ? new Date(user.createdAt).toLocaleDateString()
                           : "—"}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleDelete(user)}
+                        disabled={deletingId === user.id}
+                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                        title="Delete user"
+                      >
+                        {deletingId === user.id ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
+                      </button>
                     </td>
                   </tr>
                 ))

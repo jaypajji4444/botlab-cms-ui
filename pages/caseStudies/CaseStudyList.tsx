@@ -145,10 +145,22 @@ export const CaseStudyList: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="max-w-xs">
                         <div className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
-                          {cs.title}
+                          <Link
+                            to={`/case-studies/edit/${cs.id}`}
+                            className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate block"
+                          >
+                            {cs.title}
+                          </Link>
                         </div>
                         <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate italic tracking-tighter">
-                          /{cs.slug}
+                          <a
+                            href={`${(import.meta as any).env?.VITE_SITE_URL || "https://botlab-rho.vercel.app"}/casestudies/${cs.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-blue-600 hover:underline transition-colors"
+                          >
+                            /{cs.slug}
+                          </a>
                         </div>
                       </div>
                     </td>
