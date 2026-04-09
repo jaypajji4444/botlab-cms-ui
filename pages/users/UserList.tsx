@@ -48,7 +48,8 @@ export const UserList: React.FC = () => {
   }, [users, search]);
 
   const handleDelete = async (user: UserDto) => {
-    if (!window.confirm(`Are you sure you want to delete "${user.name}"?`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${user.name}"?`))
+      return;
     setDeletingId(user.id);
     try {
       await usersApi.delete(user.id);
@@ -127,10 +128,7 @@ export const UserList: React.FC = () => {
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-20 text-center">
-                    <Inbox
-                      className="mx-auto text-gray-300 mb-2"
-                      size={40}
-                    />
+                    <Inbox className="mx-auto text-gray-300 mb-2" size={40} />
                     <p className="text-gray-500 font-medium">
                       {search ? "No matches found." : "No users yet."}
                     </p>
