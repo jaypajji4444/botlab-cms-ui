@@ -115,14 +115,14 @@ const RichTextEditor = React.memo(({ value, onChange }: ValueEditorProps) => {
   );
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm" style={{ height: "350px" }}>
       <ReactQuill
         ref={quillRef}
         theme="snow"
         value={typeof value === "string" ? value : ""}
         onChange={onChange}
         modules={modules}
-        style={{ height: "300px" }}
+        style={{ height: "100%" }}
       />
     </div>
   );

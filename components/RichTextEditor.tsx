@@ -274,9 +274,7 @@ const MenuBar = ({
             {editor.isActive("table") && (
               <>
                 <ToolbarButton
-                  onClick={() =>
-                    editor.chain().focus().addColumnAfter().run()
-                  }
+                  onClick={() => editor.chain().focus().addColumnAfter().run()}
                   title="Add Column"
                 >
                   <span className="flex items-center gap-0.5">
@@ -285,9 +283,7 @@ const MenuBar = ({
                   </span>
                 </ToolbarButton>
                 <ToolbarButton
-                  onClick={() =>
-                    editor.chain().focus().deleteColumn().run()
-                  }
+                  onClick={() => editor.chain().focus().deleteColumn().run()}
                   title="Delete Column"
                 >
                   <span className="flex items-center gap-0.5">
@@ -296,9 +292,7 @@ const MenuBar = ({
                   </span>
                 </ToolbarButton>
                 <ToolbarButton
-                  onClick={() =>
-                    editor.chain().focus().addRowAfter().run()
-                  }
+                  onClick={() => editor.chain().focus().addRowAfter().run()}
                   title="Add Row"
                 >
                   <span className="flex items-center gap-0.5">
@@ -307,9 +301,7 @@ const MenuBar = ({
                   </span>
                 </ToolbarButton>
                 <ToolbarButton
-                  onClick={() =>
-                    editor.chain().focus().deleteRow().run()
-                  }
+                  onClick={() => editor.chain().focus().deleteRow().run()}
                   title="Delete Row"
                 >
                   <span className="flex items-center gap-0.5">
@@ -318,9 +310,7 @@ const MenuBar = ({
                   </span>
                 </ToolbarButton>
                 <ToolbarButton
-                  onClick={() =>
-                    editor.chain().focus().deleteTable().run()
-                  }
+                  onClick={() => editor.chain().focus().deleteTable().run()}
                   title="Delete Table"
                 >
                   <Trash2 size={14} className="text-red-400" />
@@ -438,7 +428,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       className={`border border-gray-200 rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-blue-500 transition-shadow ${className}`}
     >
       <MenuBar editor={editor} enableBlogFeatures={enableBlogFeatures} />
-      <EditorContent editor={editor} />
+      <div className="max-h-[400px] overflow-y-auto">
+        <EditorContent editor={editor} />
+      </div>
 
       {/* Link Bubble Tooltip — shows URL, Edit, Remove when clicking a link */}
       {editor && (
@@ -464,9 +456,13 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               type="button"
               onClick={() => {
                 const previousUrl = editor.getAttributes("link").href || "";
-                const menuBar = document.querySelector(".tiptap-link-edit-trigger");
+                const menuBar = document.querySelector(
+                  ".tiptap-link-edit-trigger",
+                );
                 // Trigger inline link input in the MenuBar via custom event
-                const event = new CustomEvent("tiptap-edit-link", { detail: previousUrl });
+                const event = new CustomEvent("tiptap-edit-link", {
+                  detail: previousUrl,
+                });
                 document.dispatchEvent(event);
               }}
               className="text-gray-400 hover:text-blue-500 transition-colors"
