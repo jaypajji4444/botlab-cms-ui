@@ -122,6 +122,7 @@ export interface CreateLeadDto {
   eventLocation?: string;
   companyName?: string;
   eventDate?: string;
+  formName?: string;
 }
 
 export interface LeadDto extends CreateLeadDto {

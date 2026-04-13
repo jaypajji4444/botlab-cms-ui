@@ -1,6 +1,7 @@
 import {
   Briefcase,
   Calendar,
+  ClipboardList,
   Download,
   Eye,
   Globe,
@@ -56,12 +57,14 @@ export const LeadList: React.FC = () => {
       const email = (l.email || "").toLowerCase();
       const company = (l.companyName || "").toLowerCase();
       const event = (l.eventLocation || "").toLowerCase();
+      const formName = (l.formName || "").toLowerCase();
       const searchTerm = search.toLowerCase();
       return (
         fullName.includes(searchTerm) ||
         email.includes(searchTerm) ||
         company.includes(searchTerm) ||
-        event.includes(searchTerm)
+        event.includes(searchTerm) ||
+        formName.includes(searchTerm)
       );
     });
   }, [leads, search]);
@@ -102,6 +105,7 @@ export const LeadList: React.FC = () => {
       "Message",
       "UTM Data",
       "Page URL",
+      "Form Name",
       "Date",
     ];
     const rows = leads.map((l) =>
@@ -116,6 +120,7 @@ export const LeadList: React.FC = () => {
         l.message || "",
         l.utmRaw || "",
         l.pageUrl || "",
+        l.formName || "",
         l.createdAt ? new Date(l.createdAt).toLocaleDateString() : "",
       ]
         .map(csvEscape)
@@ -177,6 +182,7 @@ export const LeadList: React.FC = () => {
                 <th className="px-6 py-4">Event / Company</th>
                 <th className="px-6 py-4">UTM Data</th>
                 <th className="px-6 py-4">Page</th>
+                <th className="px-6 py-4">Form</th>
                 <th className="px-6 py-4">Received At</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
@@ -185,7 +191,7 @@ export const LeadList: React.FC = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-6 py-8 text-center text-gray-500"
                   >
                     Loading leads...
@@ -194,7 +200,7 @@ export const LeadList: React.FC = () => {
               ) : filteredLeads.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-6 py-8 text-center text-gray-500"
                   >
                     No leads found.
@@ -294,6 +300,19 @@ export const LeadList: React.FC = () => {
                           <Globe size={10} className="mr-1 flex-shrink-0" />
                           {lead.pageUrl.replace(/https?:\/\/[^/]+/, "")}
                         </div>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {lead.formName ? (
+                        <span className="inline-flex items-center text-xs font-medium bg-teal-50 text-teal-700 px-2 py-1 rounded">
+                          <ClipboardList
+                            size={12}
+                            className="mr-1 flex-shrink-0"
+                          />
+                          {lead.formName}
+                        </span>
                       ) : (
                         <span className="text-xs text-gray-300">—</span>
                       )}
@@ -465,6 +484,19 @@ export const LeadList: React.FC = () => {
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Form Name */}
+              {selectedLead.formName && (
+                <div className="bg-teal-50 p-4 rounded-xl border border-teal-100 space-y-1">
+                  <label className="block text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                    Form Source
+                  </label>
+                  <p className="text-sm text-gray-700 font-medium flex items-center">
+                    <ClipboardList size={14} className="mr-1.5 text-teal-600" />
+                    {selectedLead.formName}
+                  </p>
                 </div>
               )}
 
