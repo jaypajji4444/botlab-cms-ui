@@ -1,9 +1,11 @@
 import {
   Briefcase,
   Calendar,
+  CalendarDays,
   ClipboardList,
   Download,
   Eye,
+  Filter,
   Globe,
   Mail,
   Phone,
@@ -13,7 +15,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { leadsApi } from "../../client/leads";
 import { LeadDto } from "../../types";
@@ -23,6 +25,10 @@ export const LeadList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedLead, setSelectedLead] = useState<LeadDto | null>(null);
+  const [showExportDateFilter, setShowExportDateFilter] = useState(false);
+  const [exportDateFrom, setExportDateFrom] = useState("");
+  const [exportDateTo, setExportDateTo] = useState("");
+  const exportPopoverRef = useRef<HTMLDivElement>(null);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -55,6 +61,7 @@ export const LeadList: React.FC = () => {
     return leads.filter((l) => {
       const fullName = `${l.firstName || ""} ${l.lastName || ""}`.toLowerCase();
       const email = (l.email || "").toLowerCase();
+      const mobile = (l.mobileNumber || "").toLowerCase();
       const company = (l.companyName || "").toLowerCase();
       const event = (l.eventLocation || "").toLowerCase();
       const formName = (l.formName || "").toLowerCase();
@@ -62,6 +69,7 @@ export const LeadList: React.FC = () => {
       return (
         fullName.includes(searchTerm) ||
         email.includes(searchTerm) ||
+        mobile.includes(searchTerm) ||
         company.includes(searchTerm) ||
         event.includes(searchTerm) ||
         formName.includes(searchTerm)
@@ -86,6 +94,22 @@ export const LeadList: React.FC = () => {
     return "?";
   };
 
+  // Close export popover on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        exportPopoverRef.current &&
+        !exportPopoverRef.current.contains(e.target as Node)
+      ) {
+        setShowExportDateFilter(false);
+      }
+    };
+    if (showExportDateFilter) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showExportDateFilter]);
+
   const handleDownloadCSV = () => {
     const csvEscape = (val: string) => {
       if (val.includes(",") || val.includes('"') || val.includes("\n")) {
@@ -93,6 +117,28 @@ export const LeadList: React.FC = () => {
       }
       return val;
     };
+
+    // Filter leads by date range if set
+    let exportLeads = leads;
+    if (exportDateFrom) {
+      const from = new Date(exportDateFrom);
+      from.setHours(0, 0, 0, 0);
+      exportLeads = exportLeads.filter(
+        (l) => l.createdAt && new Date(l.createdAt) >= from,
+      );
+    }
+    if (exportDateTo) {
+      const to = new Date(exportDateTo);
+      to.setHours(23, 59, 59, 999);
+      exportLeads = exportLeads.filter(
+        (l) => l.createdAt && new Date(l.createdAt) <= to,
+      );
+    }
+
+    if (exportLeads.length === 0) {
+      toast.error("No leads found for the selected date range");
+      return;
+    }
 
     const headers = [
       "Name",
@@ -108,7 +154,7 @@ export const LeadList: React.FC = () => {
       "Form Name",
       "Date",
     ];
-    const rows = leads.map((l) =>
+    const rows = exportLeads.map((l) =>
       [
         `${l.firstName || ""} ${l.lastName || ""}`.trim(),
         l.email || "",
@@ -127,15 +173,20 @@ export const LeadList: React.FC = () => {
         .join(","),
     );
 
+    const dateSuffix =
+      exportDateFrom || exportDateTo
+        ? `_${exportDateFrom || "start"}_to_${exportDateTo || "now"}`
+        : "";
     const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `leads_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `leads_export_${new Date().toISOString().slice(0, 10)}${dateSuffix}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    toast.success(`Exported ${leads.length} leads`);
+    setShowExportDateFilter(false);
+    toast.success(`Exported ${exportLeads.length} leads`);
   };
 
   return (
@@ -147,13 +198,75 @@ export const LeadList: React.FC = () => {
             Track and manage user inquiries with UTM attribution data.
           </p>
         </div>
-        <button
-          onClick={handleDownloadCSV}
-          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors shadow-sm"
-        >
-          <Download size={16} className="mr-2" />
-          Export CSV
-        </button>
+        <div className="relative" ref={exportPopoverRef}>
+          <button
+            onClick={() => setShowExportDateFilter(!showExportDateFilter)}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors shadow-sm"
+          >
+            <Download size={16} className="mr-2" />
+            Export CSV
+            <Filter size={14} className="ml-2 opacity-70" />
+          </button>
+
+          {showExportDateFilter && (
+            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-gray-700 flex items-center">
+                  <CalendarDays size={16} className="mr-2 text-green-600" />
+                  Export Date Range
+                </h4>
+                {(exportDateFrom || exportDateTo) && (
+                  <button
+                    onClick={() => {
+                      setExportDateFrom("");
+                      setExportDateTo("");
+                    }}
+                    className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    From
+                  </label>
+                  <input
+                    type="date"
+                    value={exportDateFrom}
+                    onChange={(e) => setExportDateFrom(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    To
+                  </label>
+                  <input
+                    type="date"
+                    value={exportDateTo}
+                    onChange={(e) => setExportDateTo(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <p className="text-[11px] text-gray-400">
+                Leave empty to export all leads.
+              </p>
+
+              <button
+                onClick={handleDownloadCSV}
+                className="w-full flex items-center justify-center px-4 py-2.5 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-sm"
+              >
+                <Download size={16} className="mr-2" />
+                Download CSV
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -165,7 +278,7 @@ export const LeadList: React.FC = () => {
             />
             <input
               type="text"
-              placeholder="Search by name or email..."
+              placeholder="Search by name, email, or mobile..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               value={search}
               onChange={(e) => setSearch(e.target.value)}

@@ -92,12 +92,7 @@ export const ComponentListEditor: React.FC<ComponentListEditorProps> = ({ contro
 
                                     </select>
                                 </div>
-                                <div className="pt-2">
-                                    <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" {...register(`${name}.${index}.isVisible` as const)} className="rounded text-blue-600 focus:ring-blue-500" />
-                                        <span className="text-xs text-gray-600">Visible</span>
-                                    </label>
-                                </div>
+
                             </div>
 
                             {/* Dynamic Value Input */}
