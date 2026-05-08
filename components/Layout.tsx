@@ -1,6 +1,8 @@
 import {
   BookOpen,
   Briefcase,
+  ChevronDown,
+  ChevronUp,
   FileText,
   Layers,
   LayoutDashboard,
@@ -19,9 +21,12 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export const Layout: React.FC = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const location = useLocation();
   const { logout } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = React.useState(() =>
+    location.pathname.startsWith("/users"),
+  );
 
   const navItems = [
     { label: "Dashboard", path: "/", icon: <LayoutDashboard size={20} /> },
@@ -37,7 +42,6 @@ export const Layout: React.FC = () => {
       path: "/case-studies",
       icon: <Briefcase size={20} />,
     },
-    { label: "Users", path: "/users", icon: <Users size={20} /> },
     { label: "Header", path: "/header", icon: <PanelTop size={20} /> },
     { label: "Footer", path: "/footer", icon: <PanelBottom size={20} /> },
   ];
@@ -88,10 +92,38 @@ export const Layout: React.FC = () => {
         </nav>
 
         <div className="p-4 border-t border-slate-700 space-y-2">
-          <div className="flex items-center space-x-3 text-slate-400 px-4 py-2 hover:text-white cursor-pointer">
-            <Settings size={20} />
-            <span>Settings</span>
-          </div>
+          <button
+            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+            className="w-full flex items-center justify-between text-slate-400 px-4 py-2 hover:text-white cursor-pointer rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <Settings size={20} />
+              <span>Settings</span>
+            </div>
+            {isSettingsOpen ? (
+              <ChevronUp size={16} />
+            ) : (
+              <ChevronDown size={16} />
+            )}
+          </button>
+          {isSettingsOpen && (
+            <div className="ml-4 space-y-1">
+              <NavLink
+                to="/users"
+                className={({ isActive }) => `
+                  flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors
+                  ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  }
+                `}
+              >
+                <Users size={18} />
+                <span className="font-medium">Users</span>
+              </NavLink>
+            </div>
+          )}
           <button
             onClick={logout}
             className="w-full flex items-center space-x-3 text-red-400 px-4 py-2 hover:bg-red-900/20 hover:text-red-300 rounded-lg transition-colors cursor-pointer"

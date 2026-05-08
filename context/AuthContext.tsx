@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authApi } from '../client/auth';
-import { toast } from 'react-hot-toast';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { authApi } from "../client/auth";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -11,43 +11,52 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check for existing token on mount
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
       setIsAuthenticated(true);
     }
     setIsLoading(false);
   }, []);
 
+  useEffect(() => {
+    const handleForceLogout = () => {
+      setIsAuthenticated(false);
+    };
+    window.addEventListener("auth:logout", handleForceLogout);
+    return () => window.removeEventListener("auth:logout", handleForceLogout);
+  }, []);
+
   const login = async (username: string, password: string) => {
     try {
       const response = await authApi.login(username, password);
-    
+
       const { token } = response;
       if (token) {
-          localStorage.setItem('token', token);
-          setIsAuthenticated(true);
-          toast.success('Login successful');
+        localStorage.setItem("token", token);
+        setIsAuthenticated(true);
+        toast.success("Login successful");
       } else {
         // Fallback for different API structures, adjust if needed based on real backend response
-        throw new Error('No access token received');
+        throw new Error("No access token received");
       }
     } catch (error: any) {
-     
-      toast.error(error.response?.data?.message || 'Login failed');
+      toast.error(error.response?.data?.message || "Login failed");
       throw error;
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     setIsAuthenticated(false);
-    toast.success('Logged out');
+    toast.success("Logged out");
   };
 
   return (
@@ -60,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
