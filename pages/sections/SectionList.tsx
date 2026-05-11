@@ -39,8 +39,8 @@ export const SectionList: React.FC = () => {
     }
   };
 
-  const filteredSections = sections.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) || 
+  const filteredSections = sections.filter(s =>
+    s.name.toLowerCase().includes(search.toLowerCase()) ||
     s.type.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -61,16 +61,16 @@ export const SectionList: React.FC = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-200">
-           <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input 
-                type="text" 
-                placeholder="Search sections by name or type..." 
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-           </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search sections by name or type..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -87,9 +87,9 @@ export const SectionList: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                 <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading sections...</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading sections...</td></tr>
               ) : filteredSections.length === 0 ? (
-                 <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No sections found.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No sections found.</td></tr>
               ) : (
                 filteredSections.map((section) => (
                   <tr key={section.id} className="hover:bg-gray-50 transition-colors">
@@ -113,12 +113,12 @@ export const SectionList: React.FC = () => {
                             <Edit2 size={16} />
                           </button>
                         </Link>
-                        <button 
+                        {/* <button 
                           onClick={() => handleDelete(section.id)}
                           className="p-2 hover:bg-red-50 rounded text-gray-600 hover:text-red-600"
                         >
                           <Trash2 size={16} />
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>
