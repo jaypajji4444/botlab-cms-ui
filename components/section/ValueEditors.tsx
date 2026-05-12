@@ -29,13 +29,14 @@ interface SchemaField {
   key: string;
   // Added 'richText' to distinguish from plain 'longText'
   type:
-    | "text"
-    | "longText"
-    | "richText"
-    | "image"
-    | "video"
-    | "button"
-    | "list";
+  | "text"
+  | "longText"
+  | "richText"
+  | "image"
+  | "video"
+  | "button"
+  | "list";
+  schema?: SchemaField[]; // Sub-schema for nested lists
 }
 
 // --- Constants ---
@@ -412,7 +413,7 @@ ListItemRow.displayName = "ListItemRow";
 // --- 6. List Editor (Inference Logic Updated) ---
 const ListEditor: React.FC<ValueEditorProps> = React.memo(
   ({ value, onChange }) => {
-    const items = Array.isArray(value) ? value : [];
+    const items = value && typeof value === "object" && value._isList ? value.items : (Array.isArray(value) ? value : []);
     const itemsRef = useRef(items);
     itemsRef.current = items;
 
@@ -421,32 +422,42 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
 
     // Initial Schema Inference
     useEffect(() => {
+      // If value is the new structured format, use its schema
+      if (value && typeof value === "object" && value._isList && value.schema) {
+        if (schema.length === 0) {
+          setSchema(value.schema);
+        }
+        return;
+      }
+
       if (schema.length === 0 && items.length > 0) {
         const firstItem = items[0];
         const inferredSchema: SchemaField[] = Object.keys(firstItem).map(
           (key) => {
             const val = firstItem[key];
             let type: SchemaField["type"] = "text";
+            let subSchema: SchemaField[] | undefined;
 
             // Heuristics
             if (typeof val === "string") {
-              // Check if string contains HTML tags (e.g., <p>, <br>, <b>)
               const hasHtml = /<[a-z][\s\S]*>/i.test(val);
-
               if (hasHtml) {
                 type = "richText";
               } else if (val.length > 60) {
-                // Long plain text -> Textarea
                 type = "longText";
               }
-            } else if (Array.isArray(val)) type = "list";
-            else if (typeof val === "object" && val !== null) {
+            } else if (Array.isArray(val) || (val && typeof val === "object" && val._isList)) {
+              type = "list";
+              if (val && typeof val === "object" && val._isList && val.schema) {
+                subSchema = val.schema;
+              }
+            } else if (typeof val === "object" && val !== null) {
               if ("url" in val && key.toLowerCase().includes("video"))
                 type = "video";
               else if ("url" in val) type = "image";
               else if ("link" in val) type = "button";
             }
-            return { key, type };
+            return { key, type, schema: subSchema };
           },
         );
         setSchema(inferredSchema);
@@ -456,10 +467,12 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
           { key: "description", type: "longText" },
         ]);
       }
-    }, [items.length]);
+    }, [items.length, value]);
 
     const handleAddItem = useCallback(() => {
       const newItem: any = {};
+      const templateItem = itemsRef.current[0];
+
       schema.forEach((field) => {
         if (
           field.type === "text" ||
@@ -471,47 +484,84 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
           newItem[field.key] = { url: "" };
         else if (field.type === "button")
           newItem[field.key] = { text: "Button", link: "#" };
-        else if (field.type === "list") newItem[field.key] = [];
+        else if (field.type === "list") {
+          // Priority: 1. Field-level schema, 2. Template item's schema, 3. Empty list
+          const templateList = templateItem?.[field.key];
+          const subSchema = field.schema || (templateList && typeof templateList === "object" && templateList._isList ? templateList.schema : []);
+          newItem[field.key] = { _isList: true, items: [], schema: subSchema };
+        }
       });
-      onChange([...itemsRef.current, newItem]);
+      onChange({ _isList: true, items: [...itemsRef.current, newItem], schema });
     }, [schema, onChange]);
 
     const handleRemoveItem = useCallback(
       (index: number) => {
         const newItems = itemsRef.current.filter((_, i) => i !== index);
-        onChange(newItems);
+        onChange({ _isList: true, items: newItems, schema });
       },
-      [onChange],
+      [onChange, schema],
     );
 
     const handleUpdateItem = useCallback(
       (index: number, key: string, val: any) => {
-        const newItems = [...itemsRef.current];
+        let newItems = [...itemsRef.current];
         newItems[index] = { ...newItems[index], [key]: val };
-        onChange(newItems);
+
+        // Synchronization: If a nested list's schema changed, propagate it to our parent schema
+        // and sync all sibling items to use the same schema.
+        let newSchema = schema;
+        if (val && typeof val === "object" && val._isList && val.schema) {
+          const updatedSubSchema = val.schema;
+          newSchema = schema.map((f) =>
+            f.key === key ? { ...f, schema: updatedSubSchema } : f
+          );
+          setSchema(newSchema);
+
+          // Apply this schema to all items to keep them in sync
+          newItems = newItems.map((item) => {
+            if (
+              item[key] &&
+              typeof item[key] === "object" &&
+              item[key]._isList
+            ) {
+              return {
+                ...item,
+                [key]: { ...item[key], schema: updatedSubSchema },
+              };
+            }
+            return item;
+          });
+        }
+
+        onChange({ _isList: true, items: newItems, schema: newSchema });
       },
-      [onChange],
+      [onChange, schema],
     );
 
     const handleRemoveField = (idx: number) => {
       const fieldToRemove = schema[idx].key;
-      setSchema(schema.filter((_, i) => i !== idx));
-      onChange(
-        itemsRef.current.map((item) => {
+      const newSchema = schema.filter((_, i) => i !== idx);
+      setSchema(newSchema);
+      onChange({
+        _isList: true,
+        items: itemsRef.current.map((item) => {
           const newItem = { ...item };
           delete newItem[fieldToRemove];
           return newItem;
         }),
-      );
+        schema: newSchema
+      });
       toast.success(`Removed field "${fieldToRemove}"`);
     };
 
     const handleRenameField = (idx: number, newKey: string) => {
       const oldKey = schema[idx].key;
       if (oldKey === newKey) return;
-      setSchema(schema.map((f, i) => (i === idx ? { ...f, key: newKey } : f)));
-      onChange(
-        itemsRef.current.map((item) => {
+      const newSchema = schema.map((f, i) => (i === idx ? { ...f, key: newKey } : f));
+      setSchema(newSchema);
+      onChange({
+        _isList: true,
+        items: itemsRef.current.map((item) => {
           const newItem = { ...item };
           if (oldKey in newItem) {
             newItem[newKey] = newItem[oldKey];
@@ -519,7 +569,40 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
           }
           return newItem;
         }),
+        schema: newSchema
+      });
+    };
+
+    const handleTypeChange = (idx: number, newType: SchemaField["type"]) => {
+      const field = schema[idx];
+      const newSchema = schema.map((f, i) =>
+        i === idx ? { ...f, type: newType } : f
       );
+      setSchema(newSchema);
+
+      // If changing to list, initialize items that don't have a list object yet
+      let newItems = itemsRef.current;
+      if (newType === "list") {
+        newItems = itemsRef.current.map((item) => {
+          if (
+            !item[field.key] ||
+            typeof item[field.key] !== "object" ||
+            !item[field.key]._isList
+          ) {
+            return {
+              ...item,
+              [field.key]: { _isList: true, items: [], schema: [] },
+            };
+          }
+          return item;
+        });
+      }
+
+      onChange({
+        _isList: true,
+        items: newItems,
+        schema: newSchema,
+      });
     };
 
     return (
@@ -552,13 +635,7 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
                   />
                   <select
                     value={field.type}
-                    onChange={(e) =>
-                      setSchema(
-                        schema.map((f, i) =>
-                          i === idx ? { ...f, type: e.target.value as any } : f,
-                        ),
-                      )
-                    }
+                    onChange={(e) => handleTypeChange(idx, e.target.value as any)}
                     className="text-xs font-semibold border border-blue-200 rounded-lg px-3 py-2 bg-white"
                   >
                     <option value="text">Short Text</option>
@@ -581,12 +658,12 @@ const ListEditor: React.FC<ValueEditorProps> = React.memo(
             </div>
             <button
               type="button"
-              onClick={() =>
-                setSchema([
-                  ...schema,
-                  { key: `field_${schema.length + 1}`, type: "text" },
-                ])
-              }
+              onClick={() => {
+                const newField: SchemaField = { key: `field_${schema.length + 1}`, type: "text" };
+                const newSchema = [...schema, newField];
+                setSchema(newSchema);
+                onChange({ _isList: true, items: itemsRef.current, schema: newSchema });
+              }}
               className="w-full py-2 bg-white border-2 border-dashed border-blue-200 rounded-lg text-blue-500 text-xs font-bold"
             >
               + New Field
@@ -662,7 +739,7 @@ export const ValueEditors: React.FC<ValueEditorProps> = (props) => {
             setInternalJson(e.target.value);
             try {
               onChange(JSON.parse(e.target.value));
-            } catch (err) {}
+            } catch (err) { }
           }}
         />
       </div>
